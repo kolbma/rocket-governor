@@ -899,7 +899,7 @@ dependencies = [
 
 [[package]]
 name = "rocket-governor"
-version = "0.0.1-rc.2"
+version = "0.0.1-rc.3"
 dependencies = [
  "governor",
  "lazy_static",
