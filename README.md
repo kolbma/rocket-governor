@@ -1,3 +1,5 @@
+[![Rust](https://github.com/kolbma/rocket-governor/actions/workflows/rust.yml/badge.svg)](https://github.com/kolbma/rocket-governor/actions/workflows/rust.yml)
+
 ## Description
 
 Implementation of the [Governor](https://github.com/antifuchs/governor.git) rate limiter for [Rocket](https://rocket.rs) web framework.
