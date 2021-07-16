@@ -1,0 +1,25 @@
+[package]
+name = "rocket-governor"
+version = "0.0.1-rc.1"
+edition = "2018"
+license = "MIT OR Apache-2.0"
+description = "Implementation of Governor rate limiter for Rocket"
+documentation = "https://docs.rs/rocket-governor"
+homepage = "https://github.com/kolbma/rocket-governor"
+repository = "https://github.com/kolbma/rocket-governor"
+keywords = ["rocket", "governor", "rate-limit", "rate-limiting", "ratelimit", "guard", "catcher", "web", "framework"]
+categories = ["web-programming"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+governor = "0.3"
+lazy_static = "1.4"
+# rocket = { path = "../rocket/core/lib" }
+rocket = { git = "https://github.com/SergioBenitez/Rocket.git", branch = "v0.5-rc" }
+
+[dev-dependencies]
+#rocket-governor = { path = "../rocket-governor" }
+rocket-governor = { git = "https://github.com/kolbma/rocket-governor.git" }
+#rocket-governor-derive = { path = "../rocket-governor-derive" }
+rocket-governor-derive = { git = "https://github.com/kolbma/rocket-governor-derive.git" }
