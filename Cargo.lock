@@ -899,11 +899,22 @@ dependencies = [
 
 [[package]]
 name = "rocket-governor"
-version = "0.0.1-rc.3"
+version = "0.0.1-rc.5"
 dependencies = [
  "governor",
  "lazy_static",
  "rocket",
+ "rocket-governor-derive",
+]
+
+[[package]]
+name = "rocket-governor-derive"
+version = "0.0.1-rc.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83b0e664d045cbc03553251ad8a2caa215ce2fbe4ae5ca1c906166aa9347924d"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]
