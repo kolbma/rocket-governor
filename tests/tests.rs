@@ -11,7 +11,7 @@ use rocket::{
 };
 use rocket_governor::{Method, Quota, RocketGovernable};
 use rocket_governor_derive::{RocketGovernor, RocketGovernorWithMember};
-use std::{thread, time::Duration};
+use std::{thread, time::Duration, str::FromStr};
 
 #[derive(RocketGovernor)]
 pub struct RateLimitGuard;
@@ -137,4 +137,26 @@ fn test_ratelimit_with_member() {
     let res = req.dispatch();
 
     assert_eq!(Status::Ok, res.status());
+}
+
+#[test]
+fn test_ratelimit_header() {
+    let client = Client::untracked(launch_rocket()).expect("no rocket instance");
+    let mut req = client.get("/");
+    req.add_header(Header::new("X-Real-IP", "127.0.3.1"));
+    let res = req.dispatch();
+
+    assert_eq!(Status::Ok, res.status());
+
+    let mut req = client.get("/");
+    req.add_header(Header::new("X-Real-IP", "127.0.3.1"));
+    let res = req.dispatch();
+
+    assert_eq!(Status::TooManyRequests, res.status());
+    
+    let reset_header = res.headers().get_one("X-RateLimit-Reset");
+    assert_ne!(None, reset_header);
+    let reset_header = reset_header.unwrap();
+    assert!(reset_header.len() > 0);
+    u64::from_str(reset_header).unwrap();
 }
