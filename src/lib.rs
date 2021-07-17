@@ -1,10 +1,43 @@
-//! Useable for [rocket] guards implementing rate-limiting (based on [governor])
+//! # rocket-governor - rate-limiting implementation for Rocket web framework
 //!
-//! See [rocket_governor] for more information.
+//! Provides [rocket] guards implementing rate-limiting (based on [governor]).
+//!
+//! It is used with the derive macro [rocket_governor_derive].
+//!
+//! ## Example
+//!
+//! ```rust
+//! use rocket::{catchers, get, http::Status, launch, routes};
+//! use rocket_governor::{Method, Quota, RocketGovernable};
+//! use rocket_governor_derive::RocketGovernor;
+//! 
+//! #[derive(RocketGovernor)]
+//! pub struct RateLimitGuard;
+//! 
+//! impl<'r> RocketGovernable<'r> for RateLimitGuard {
+//!     fn quota(_method: Method, _route_name: &str) -> Quota {
+//!         Quota::per_second(Self::nonzero(1u32))
+//!     }
+//! }
+//! 
+//! #[get("/")]
+//! fn route_example(_limitguard: RateLimitGuard) -> Status {
+//!     Status::Ok
+//! }
+//! 
+//! #[launch]
+//! fn launch_rocket() -> _ {
+//!     rocket::build()
+//!         .mount("/", routes![route_example])
+//!         .register("/", catchers![ratelimitguard_rocket_governor_catcher])
+//! }
+//! ```
+//! 
+//! See [rocket_governor] Github project for more information.
 //!
 //! [governor]: https://docs.rs/governor/
 //! [rocket]: https://docs.rs/rocket/
-//! [rocket_governor]: https://docs.rs/rocket_governor/
+//! [rocket_governor]: https://github.com/kolbma/rocket_governor/
 //! [rocket_governor_derive]: https://docs.rs/rocket_governor_derive/
 
 #![deny(unsafe_code)]
@@ -27,15 +60,17 @@ pub use std::num::NonZeroU32;
 
 mod registry;
 
+/// The RocketGovernable guard trait.
+///
 /// [rocket_governor] is a [rocket] guard implementation of the
 /// [governor] rate limiter.
 ///
 /// It is used with the derive macro [rocket_governor_derive].
 ///
 /// Declare a struct with `#[derive(RocketGovernor)]` and implement the
-/// missing methods.
+/// missing methods of this trait.
 ///
-/// [gorvernor]: https://docs.rs/governor/
+/// [governor]: https://docs.rs/governor/
 /// [rocket]: https://docs.rs/rocket/
 /// [rocket_governor]: https://docs.rs/rocket_governor/
 /// [rocket_governor_derive]: https://docs.rs/rocket_governor_derive/
@@ -45,18 +80,19 @@ pub trait RocketGovernable<'r>: FromRequest<'r> + Default {
     /// Returns the [Quota] of the [rocket_governor]
     ///
     /// This is called only once per method/route_name combination.
-    /// So it makes only sense to return always the same [Quota] for this
-    /// combination and no dynamic calculation.
+    /// So it makes only sense to return always the same [Quota] for 
+    /// equal parameter combinations and no dynamic calculation.
     ///
     /// This is also the requirement to have correct information set
-    /// in HTTP headers by registered `too_many_requests_catcher(&Request)`.
+    /// in HTTP headers by registered `rocket_governor_catcher(&Request)`.
     ///
     /// [Quota]: https://docs.rs/governor/latest/governor/struct.Quota.html
     /// [rocket_governor]: https://docs.rs/rocket_governor/
     #[must_use]
     fn quota(method: Method, route_name: &str) -> Quota;
 
-    // #[catch(429)]
+    /// Implementation of catcher used in derive macro
+    #[doc(hidden)]
     #[inline(always)]
     fn rocket_governor_catcher<'c>(request: &'c Request) -> &'c LimitError {
         let cached_res: &Result<(), LimitError> = request.local_cache(|| Err(LimitError::Error));
@@ -94,7 +130,10 @@ const HEADER_X_RATELIMIT_ERROR: &'static str = "X-RateLimit-Error";
 /// header provides the time in seconds when a request to the route is not rate limited
 const HEADER_X_RATELIMIT_RESET: &'static str = "X-RateLimit-Reset";
 
-/// Helper utility for derive macro [rocket_governor_derive::RocketGovernor]
+/// Helper utility for derive macro [rocket_governor_derive::RocketGovernor].
+///
+/// [rocket_governor_derive::RocketGovernor]: https://docs.rs/rocket-governor-derive/latest/rocket_governor_derive/
+#[doc(hidden)]
 pub struct RocketGovernorMacroUtil<'r, T: RocketGovernable<'r>> {
     _phantom: &'r PhantomData<T>,
 }
@@ -143,6 +182,7 @@ where
     }
 }
 
+/// Errors in govern (rate limit).
 #[derive(Clone, Debug)]
 pub enum LimitError {
     /// Any other undefined LimitError
