@@ -46,6 +46,7 @@
 
 use governor::clock::{Clock, DefaultClock};
 pub use governor::Quota;
+use header::Header;
 use lazy_static::lazy_static;
 use registry::Registry;
 pub use rocket::http::Method;
@@ -58,6 +59,7 @@ use rocket::{
 use std::marker::PhantomData;
 pub use std::num::NonZeroU32;
 
+pub mod header;
 mod registry;
 
 /// The RocketGovernable guard trait.
@@ -118,18 +120,6 @@ pub trait RocketGovernable<'r>: FromRequest<'r> + Default {
 lazy_static! {
     static ref CLOCK: DefaultClock = DefaultClock::default();
 }
-
-// TODO: move the headers in a mod
-/// custom header for reporting problems with rate limiter
-const HEADER_X_RATELIMIT_ERROR: &'static str = "X-RateLimit-Error";
-// TODO: not sure how the different Quota stuff can be handled
-//       Would be nice if Quota would return its setting
-/// header provides information about limitation of the route
-// const HEADER_X_RATELIMIT_LIMIT: &'static str = "X-RateLimit-Limit";
-/// header provides information about how many requests are left for the endpoint
-// const HEADER_X_RATELIMIT_REMAINING: &'static str = "X-RateLimit-Remaining";
-/// header provides the time in seconds when a request to the route is not rate limited
-const HEADER_X_RATELIMIT_RESET: &'static str = "X-RateLimit-Reset";
 
 /// Helper utility for derive macro [rocket_governor_derive::RocketGovernor].
 ///
@@ -207,19 +197,16 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for &LimitError {
         let mut builder = Response::build();
         let mut builder = builder.status(Status::TooManyRequests);
         builder = match self {
-            LimitError::Error => builder.raw_header(HEADER_X_RATELIMIT_ERROR, "rate limiter error"),
+            LimitError::Error => builder.header(Header::XRateLimitError("rate limiter error")),
             LimitError::GovernedRequest(wait_time) => builder
-                // .raw_header(RetryAfter, wait_time.to_string())
-                .raw_header(HEADER_X_RATELIMIT_RESET, wait_time.to_string()),
-            LimitError::MissingClientIpAddr => builder.raw_header(
-                HEADER_X_RATELIMIT_ERROR,
+                .header(Header::RetryAfter(*wait_time))
+                .header(Header::XRateLimitReset(*wait_time)),
+            LimitError::MissingClientIpAddr => builder.header(Header::XRateLimitError(
                 "application no retrieving client ip",
-            ),
-            LimitError::MissingRoute => {
-                builder.raw_header(HEADER_X_RATELIMIT_ERROR, "routing failure")
-            }
+            )),
+            LimitError::MissingRoute => builder.header(Header::XRateLimitError("routing failure")),
             LimitError::MissingRouteName => {
-                builder.raw_header(HEADER_X_RATELIMIT_ERROR, "route without name")
+                builder.header(Header::XRateLimitError("route without name"))
             }
         };
         builder.ok()
