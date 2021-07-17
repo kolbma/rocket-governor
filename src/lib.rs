@@ -7,7 +7,7 @@
 //! ## Example
 //!
 //! ```rust
-//! use rocket::{catchers, get, http::header:: http::Status, launch, routes};
+//! use rocket::{catchers, get, http::Status, launch, routes};
 //! use rocket_governor::{Method, Quota, RocketGovernable};
 //! use rocket_governor_derive::RocketGovernor;
 //!
