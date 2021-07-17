@@ -1,4 +1,6 @@
 [![Rust](https://github.com/kolbma/rocket-governor/actions/workflows/rust.yml/badge.svg)](https://github.com/kolbma/rocket-governor/actions/workflows/rust.yml)
+[![crates.io](https://img.shields.io/crates/v/rocket-governor)](https://crates.io/crates/rocket-governor)
+[![docs](https://docs.rs/rocket-governor/badge.svg)](https://docs.rs/rocket-governor)
 
 ## Description
 
@@ -10,10 +12,10 @@ or web service.
 ## Rocket specific features
 
 Define as many rate limits with [Quota](https://docs.rs/governor/latest/governor/struct.Quota.html) of Governor
-as you like or need in your Rocket web application/service.  
+as you like and need in your Rocket web application/service.  
 It is implemented as a Rocket [Request Guard](https://rocket.rs/v0.5-rc/guide/requests/#request-guards) and provides
 also an implementation of an [Error Catcher](https://rocket.rs/v0.5-rc/guide/requests/#error-catchers).  
-The Error Catcher can be registered on any path to handle [`Status::TooManyRequests`](https://api.rocket.rs/v0.5-rc/rocket/http/struct.Status.html#associatedconstant.TooManyRequests) and providing HTTP headers in the response.
+The Error Catcher can be registered on any path to handle [`Status::TooManyRequests`](https://api.rocket.rs/v0.5-rc/rocket/http/struct.Status.html#associatedconstant.TooManyRequests) and provide HTTP headers in the response.
 
 ## Usage
 
@@ -36,8 +38,8 @@ impl<'r> RocketGovernable<'r> for RateLimitGuard {
 }
 ```
 
-This requires to implement the `fn quota(_: Method, _: &str) -> Quota`.  
-You can vary your `Quota` on any combination of __method__ and __route_name__, but the returned `Quota` should be a _static-like_. It should __not change__ between invocations of the `quota()`-method.
+This requires to implement the method `fn quota(_: Method, _: &str) -> Quota`.  
+You can vary your `Quota` on any combination of __method__ and __route_name__, but the returned `Quota` should be a _static-like_. It should __not change__ between invocations of the `quota()`-method with equal parameters.
 
 If your struct has members, there is an alternative `derive` which requires to implement [`Default`](https://doc.rust-lang.org/std/default/trait.Default.html):
 
@@ -65,7 +67,7 @@ There is a small helper function `nonzero(u32)` for creating Quotas in your `quo
     Quota::per_second(Self::nonzero(1u32))
 ```
 
-After this you can add your _Guard_ to your route-methods like:
+After implementing the minimal requirements of the derived struct you can add your _Guard_ to your route-methods like:
 
 ```rust
 #[get("/")]
@@ -76,7 +78,7 @@ fn route_test(_limitguard: RateLimitGuard) -> Status {
 
 ### Register Catcher
 
-To handle HTTP Status 421 TooManyRequests there is an catcher-function implementation.
+To handle HTTP Status 429 TooManyRequests there is an catcher-function implementation.
 
 It is __called__ like your __*`struct`-name*__ in __lowercase__ with the extension __*_rocket_governor_catcher*__.  
 So in this usage example there exist two catcher-functions `ratelimitguard_rocket_governor_catcher()` and `ratelimitguardwithmember_rocket_governor_catcher()`.
@@ -94,7 +96,7 @@ fn launch_rocket() -> _ {
 
 ### Additional information
 
-To understand the basics of Rocket, please have a look in the _Rocket Guide_:
+To understand the basics of Rocket, please visit the _Rocket Guide_:
 * https://rocket.rs/v0.5-rc/guide/requests/#request-guards
 * https://rocket.rs/v0.5-rc/guide/requests/#error-catchers
 
