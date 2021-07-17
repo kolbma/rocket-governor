@@ -59,13 +59,21 @@ mod guard2 {
     pub struct RateLimitGuard;
 
     impl<'r> RocketGovernable<'r> for RateLimitGuard {
-        fn quota(_method: Method, _route_name: &str) -> Quota {
-            Quota::per_second(Self::nonzero(1u32))
+        fn quota(_method: Method, route_name: &str) -> Quota {
+            match route_name {
+                "route_hour" => Quota::per_hour(Self::nonzero(1)),
+                _ => Quota::per_second(Self::nonzero(1u32)),
+            }
         }
     }
 
     #[get("/")]
     pub fn route_test(_limitguard: RateLimitGuard) -> Status {
+        Status::Ok
+    }
+
+    #[get("/hour")]
+    pub fn route_hour(_limitguard: RateLimitGuard) -> Status {
         Status::Ok
     }
 }
@@ -75,7 +83,7 @@ fn launch_rocket() -> _ {
     rocket::build()
         .mount("/", routes![route_test, route_member])
         .register("/", catchers!(ratelimitguard_rocket_governor_catcher))
-        .mount("/guard2", routes![guard2::route_test])
+        .mount("/guard2", routes![guard2::route_test, guard2::route_hour])
         .register(
             "/guard2",
             catchers!(guard2::ratelimitguard_rocket_governor_catcher),
@@ -184,6 +192,21 @@ fn test_ratelimit_header() {
     let reset_header = reset_header.unwrap();
     assert!(reset_header.len() > 0);
     u64::from_str(reset_header).unwrap();
+
+    let mut req = client.get("/guard2/hour");
+    req.add_header(Header::new("X-Real-IP", "127.0.3.2"));
+    req.dispatch();
+    let mut req = client.get("/guard2/hour");
+    req.add_header(Header::new("X-Real-IP", "127.0.3.2"));
+    let res = req.dispatch();
+
+    assert_eq!(Status::TooManyRequests, res.status());
+
+    let reset_header = res.headers().get_one("Retry-After");
+    assert_ne!(None, reset_header);
+    let reset_header = reset_header.unwrap();
+    assert!(reset_header.len() > 0);
+    assert!(u64::from_str(reset_header).unwrap() > 59 * 60);
 }
 
 #[test]
