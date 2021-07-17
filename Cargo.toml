@@ -1,6 +1,6 @@
 [package]
 name = "rocket-governor"
-version = "0.0.1-rc.5"
+version = "0.0.1-rc.6"
 edition = "2018"
 license = "MIT OR Apache-2.0"
 description = "Implementation of Governor rate limiter for Rocket"
@@ -23,6 +23,6 @@ rocket = "0.5.0-rc.1"
 #rocket-governor = { path = "../rocket-governor" }
 #rocket-governor = { git = "https://github.com/kolbma/rocket-governor.git" }
 #rocket-governor = { version = "0.0.1-rc.2" }
-#rocket-governor-derive = { path = "../rocket-governor-derive" }
+# rocket-governor-derive = { path = "../rocket-governor-derive" }
 #rocket-governor-derive = { git = "https://github.com/kolbma/rocket-governor-derive.git" }
-rocket-governor-derive = { version = "0.0.1-rc.2" }
+rocket-governor-derive = { version = "0.0.1-rc.3" }
