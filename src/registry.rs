@@ -2,6 +2,7 @@ use governor::{clock::DefaultClock, state::keyed::DefaultKeyedStateStore, Quota,
 use lazy_static::lazy_static;
 use rocket::http::Method;
 use std::{
+    any::type_name,
     borrow::Cow,
     collections::HashMap,
     net::IpAddr,
@@ -17,15 +18,17 @@ pub struct Registry {
 }
 
 impl Registry {
-    pub fn get_or_insert(
+    pub fn get_or_insert<T>(
         method: Method,
         route_name: &Cow<str>,
         quota: Quota,
     ) -> RegisteredRateLimiter {
+        let route_name = type_name::<T>().to_string() + "::" + route_name;
+
         // check if exist with readlock
         let limiter = if let Ok(rlock) = REG.limiter.read() {
             if let Some(meth_found) = rlock.get(&method) {
-                if let Some(limiter) = meth_found.get(&**route_name) {
+                if let Some(limiter) = meth_found.get(&route_name) {
                     Some(Arc::clone(limiter))
                 } else {
                     None
@@ -43,17 +46,17 @@ impl Registry {
         } else {
             let mut wlock = REG.limiter.write().unwrap();
             if let Some(meth_found) = wlock.get_mut(&method) {
-                if let Some(limiter) = meth_found.get(&**route_name) {
+                if let Some(limiter) = meth_found.get(&route_name) {
                     Arc::clone(limiter)
                 } else {
                     let limiter = Arc::new(RateLimiter::keyed(quota));
-                    meth_found.insert(route_name.to_string(), Arc::clone(&limiter));
+                    meth_found.insert(route_name, Arc::clone(&limiter));
                     limiter
                 }
             } else {
                 let mut lim_map = HashMap::new();
                 let limiter = Arc::new(RateLimiter::keyed(quota));
-                lim_map.insert(route_name.to_string(), Arc::clone(&limiter));
+                lim_map.insert(route_name, Arc::clone(&limiter));
                 wlock.insert(method, lim_map);
                 limiter
             }

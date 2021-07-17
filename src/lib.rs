@@ -7,24 +7,24 @@
 //! ## Example
 //!
 //! ```rust
-//! use rocket::{catchers, get, http::Status, launch, routes};
+//! use rocket::{catchers, get, http::header:: http::Status, launch, routes};
 //! use rocket_governor::{Method, Quota, RocketGovernable};
 //! use rocket_governor_derive::RocketGovernor;
-//! 
+//!
 //! #[derive(RocketGovernor)]
 //! pub struct RateLimitGuard;
-//! 
+//!
 //! impl<'r> RocketGovernable<'r> for RateLimitGuard {
 //!     fn quota(_method: Method, _route_name: &str) -> Quota {
 //!         Quota::per_second(Self::nonzero(1u32))
 //!     }
 //! }
-//! 
+//!
 //! #[get("/")]
 //! fn route_example(_limitguard: RateLimitGuard) -> Status {
 //!     Status::Ok
 //! }
-//! 
+//!
 //! #[launch]
 //! fn launch_rocket() -> _ {
 //!     rocket::build()
@@ -32,7 +32,7 @@
 //!         .register("/", catchers![ratelimitguard_rocket_governor_catcher])
 //! }
 //! ```
-//! 
+//!
 //! See [rocket_governor] Github project for more information.
 //!
 //! [governor]: https://docs.rs/governor/
@@ -80,7 +80,7 @@ pub trait RocketGovernable<'r>: FromRequest<'r> + Default {
     /// Returns the [Quota] of the [rocket_governor]
     ///
     /// This is called only once per method/route_name combination.
-    /// So it makes only sense to return always the same [Quota] for 
+    /// So it makes only sense to return always the same [Quota] for
     /// equal parameter combinations and no dynamic calculation.
     ///
     /// This is also the requirement to have correct information set
@@ -119,6 +119,7 @@ lazy_static! {
     static ref CLOCK: DefaultClock = DefaultClock::default();
 }
 
+// TODO: move the headers in a mod
 /// custom header for reporting problems with rate limiter
 const HEADER_X_RATELIMIT_ERROR: &'static str = "X-RateLimit-Error";
 // TODO: not sure how the different Quota stuff can be handled
@@ -147,7 +148,7 @@ where
         let res = request.local_cache(|| {
             if let Some(route) = request.route() {
                 if let Some(route_name) = &route.name {
-                    let limiter = Registry::get_or_insert(
+                    let limiter = Registry::get_or_insert::<T>(
                         route.method,
                         route_name,
                         T::quota(route.method, route_name),
@@ -207,9 +208,9 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for &LimitError {
         let mut builder = builder.status(Status::TooManyRequests);
         builder = match self {
             LimitError::Error => builder.raw_header(HEADER_X_RATELIMIT_ERROR, "rate limiter error"),
-            LimitError::GovernedRequest(wait_time) => {
-                builder.raw_header(HEADER_X_RATELIMIT_RESET, wait_time.to_string())
-            }
+            LimitError::GovernedRequest(wait_time) => builder
+                // .raw_header(RetryAfter, wait_time.to_string())
+                .raw_header(HEADER_X_RATELIMIT_RESET, wait_time.to_string()),
             LimitError::MissingClientIpAddr => builder.raw_header(
                 HEADER_X_RATELIMIT_ERROR,
                 "application no retrieving client ip",
