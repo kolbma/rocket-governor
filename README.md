@@ -94,6 +94,16 @@ fn launch_rocket() -> _ {
 }
 ```
 
+### Optional feature __logger__
+
+There is the optional feature __logger__ which enables some logging output.
+
+For usage depend on it in Cargo.toml
+```toml
+[dependencies]
+rocket-governor = { version = "...", features = ["logger"] }
+```
+
 ### Additional information
 
 To understand the basics of Rocket, please visit the _Rocket Guide_:
