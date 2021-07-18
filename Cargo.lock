@@ -903,6 +903,7 @@ version = "0.0.1-rc.6"
 dependencies = [
  "governor",
  "lazy_static",
+ "log",
  "rocket",
  "rocket-governor-derive",
 ]

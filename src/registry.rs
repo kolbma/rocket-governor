@@ -1,3 +1,4 @@
+use crate::logger::debug;
 use governor::{clock::DefaultClock, state::keyed::DefaultKeyedStateStore, Quota, RateLimiter};
 use lazy_static::lazy_static;
 use rocket::http::Method;
@@ -29,6 +30,7 @@ impl Registry {
         let limiter = if let Ok(rlock) = REG.limiter.read() {
             if let Some(meth_found) = rlock.get(&method) {
                 if let Some(limiter) = meth_found.get(&route_name) {
+                    debug!("limiter found method {} route {}", method, route_name);
                     Some(Arc::clone(limiter))
                 } else {
                     None
@@ -47,13 +49,16 @@ impl Registry {
             let mut wlock = REG.limiter.write().unwrap();
             if let Some(meth_found) = wlock.get_mut(&method) {
                 if let Some(limiter) = meth_found.get(&route_name) {
+                    debug!("limiter found method {} route {}", &method, &route_name);
                     Arc::clone(limiter)
                 } else {
+                    debug!("new limiter method {} route {}", &method, &route_name);
                     let limiter = Arc::new(RateLimiter::keyed(quota));
                     meth_found.insert(route_name, Arc::clone(&limiter));
                     limiter
                 }
             } else {
+                debug!("new limiter method {} route {}", &method, &route_name);
                 let mut lim_map = HashMap::new();
                 let limiter = Arc::new(RateLimiter::keyed(quota));
                 lim_map.insert(route_name, Arc::clone(&limiter));

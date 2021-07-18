@@ -15,6 +15,7 @@ categories = ["web-programming"]
 [dependencies]
 governor = "0.3"
 lazy_static = "1.4"
+log = { version = "0.4", optional = true }
 # rocket = { path = "../rocket/core/lib" }
 # rocket = { git = "https://github.com/SergioBenitez/Rocket.git", branch = "v0.5-rc" }
 rocket = "0.5.0-rc.1"
@@ -26,3 +27,6 @@ rocket = "0.5.0-rc.1"
 # rocket-governor-derive = { path = "../rocket-governor-derive" }
 #rocket-governor-derive = { git = "https://github.com/kolbma/rocket-governor-derive.git" }
 rocket-governor-derive = { version = "0.0.1-rc.3" }
+
+[features]
+logger = ["log"]

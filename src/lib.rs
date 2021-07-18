@@ -35,6 +35,16 @@
 //!
 //! See [rocket_governor] Github project for more information.
 //!
+//! ## Features
+//!
+//! There is the optional feature __logger__ which enables some logging output.
+//!
+//! For usage depend on it in Cargo.toml
+//! ```toml
+//! [dependencies]
+//! rocket-governor = { version = "...", features = ["logger"] }
+//! ```
+//!
 //! [governor]: https://docs.rs/governor/
 //! [rocket]: https://docs.rs/rocket/
 //! [rocket_governor]: https://github.com/kolbma/rocket_governor/
@@ -48,6 +58,7 @@ use governor::clock::{Clock, DefaultClock};
 pub use governor::Quota;
 use header::Header;
 use lazy_static::lazy_static;
+use logger::{error, info, trace};
 use registry::Registry;
 pub use rocket::http::Method;
 use rocket::{
@@ -60,6 +71,7 @@ use std::marker::PhantomData;
 pub use std::num::NonZeroU32;
 
 pub mod header;
+mod logger;
 mod registry;
 
 /// The RocketGovernable guard trait.
@@ -146,17 +158,33 @@ where
                     if let Some(client_ip) = request.client_ip() {
                         if let Err(notuntil) = limiter.check_key(&client_ip) {
                             let wait_time = notuntil.wait_time_from(CLOCK.now()).as_secs();
+                            info!(
+                                "ip {} method {} route {} limited {} sec",
+                                &client_ip, &route.method, route_name, &wait_time
+                            );
                             Err(LimitError::GovernedRequest(wait_time))
                         } else {
+                            trace!(
+                                "not governed ip {} method {} route {}",
+                                &client_ip,
+                                &route.method,
+                                route_name
+                            );
                             Ok(())
                         }
                     } else {
+                        error!(
+                            "missing ip - method {} route {}: request: {:?}",
+                            &route.method, route_name, request
+                        );
                         Err(LimitError::MissingClientIpAddr)
                     }
                 } else {
+                    error!("route without name: request: {:?}", request);
                     Err(LimitError::MissingRouteName)
                 }
             } else {
+                error!("routing failure: request: {:?}", request);
                 Err(LimitError::MissingRoute)
             }
         });
@@ -202,7 +230,7 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for &LimitError {
                 .header(Header::RetryAfter(*wait_time))
                 .header(Header::XRateLimitReset(*wait_time)),
             LimitError::MissingClientIpAddr => builder.header(Header::XRateLimitError(
-                "application no retrieving client ip",
+                "application not retrieving client ip",
             )),
             LimitError::MissingRoute => builder.header(Header::XRateLimitError("routing failure")),
             LimitError::MissingRouteName => {
