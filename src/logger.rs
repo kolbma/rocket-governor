@@ -1,5 +1,5 @@
 #[cfg(feature = "logger")]
-pub(crate) use log::{debug, error, info, trace};
+pub(crate) use rocket::{debug, error, info, trace};
 
 #[cfg(not(feature = "logger"))]
 macro_rules! debug {
