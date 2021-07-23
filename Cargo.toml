@@ -1,6 +1,6 @@
 [package]
 name = "rocket_governor"
-version = "0.0.1-rc.7"
+version = "0.0.1-rc.8"
 edition = "2018"
 license = "MIT OR Apache-2.0"
 description = "Implementation of Governor rate limiter for Rocket"

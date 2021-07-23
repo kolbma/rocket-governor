@@ -915,7 +915,7 @@ dependencies = [
 
 [[package]]
 name = "rocket_governor"
-version = "0.0.1-rc.7"
+version = "0.0.1-rc.8"
 dependencies = [
  "governor",
  "lazy_static",
