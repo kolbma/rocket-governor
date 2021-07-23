@@ -898,26 +898,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rocket-governor"
-version = "0.0.1-rc.6"
-dependencies = [
- "governor",
- "lazy_static",
- "rocket",
- "rocket-governor-derive",
-]
-
-[[package]]
-name = "rocket-governor-derive"
-version = "0.0.1-rc.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb07ac9503891894b6f0b223cb422483fcf7b22c9839d8c9a3913421e4ba6ceb"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
 name = "rocket_codegen"
 version = "0.5.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -931,6 +911,15 @@ dependencies = [
  "rocket_http",
  "syn",
  "unicode-xid",
+]
+
+[[package]]
+name = "rocket_governor"
+version = "0.0.1-rc.7"
+dependencies = [
+ "governor",
+ "lazy_static",
+ "rocket",
 ]
 
 [[package]]

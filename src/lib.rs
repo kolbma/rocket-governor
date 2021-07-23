@@ -1,17 +1,16 @@
-//! # rocket-governor - rate-limiting implementation for Rocket web framework
+//! # rocket_governor - rate-limiting implementation for Rocket web framework
 //!
-//! Provides [rocket] guards implementing rate-limiting (based on [governor]).
+//! Provides the [rocket] guard implementing rate-limiting (based on [governor]).
 //!
-//! It is used with the derive macro [rocket_governor_derive].
+//! Declare a struct and use it with the generic [RocketGovernor] guard.  
+//! This requires to implement trait [RocketGovernable] for your struct.
 //!
 //! ## Example
 //!
 //! ```rust
 //! use rocket::{catchers, get, http::Status, launch, routes};
-//! use rocket_governor::{Method, Quota, RocketGovernable};
-//! use rocket_governor_derive::RocketGovernor;
+//! use rocket_governor::{rocket_governor_catcher, Method, Quota, RocketGovernable, RocketGovernor};
 //!
-//! #[derive(RocketGovernor)]
 //! pub struct RateLimitGuard;
 //!
 //! impl<'r> RocketGovernable<'r> for RateLimitGuard {
@@ -21,7 +20,7 @@
 //! }
 //!
 //! #[get("/")]
-//! fn route_example(_limitguard: RateLimitGuard) -> Status {
+//! fn route_example(_limitguard: RocketGovernor<RateLimitGuard>) -> Status {
 //!     Status::Ok
 //! }
 //!
@@ -29,11 +28,11 @@
 //! fn launch_rocket() -> _ {
 //!     rocket::build()
 //!         .mount("/", routes![route_example])
-//!         .register("/", catchers![ratelimitguard_rocket_governor_catcher])
+//!         .register("/", catchers![rocket_governor_catcher])
 //! }
 //! ```
 //!
-//! See [rocket_governor] Github project for more information.
+//! See [rocket-governor] Github project for more information.
 //!
 //! ## Features
 //!
@@ -42,111 +41,111 @@
 //! For usage depend on it in Cargo.toml
 //! ```toml
 //! [dependencies]
-//! rocket-governor = { version = "...", features = ["logger"] }
+//! rocket_governor = { version = "...", features = ["logger"] }
 //! ```
 //!
 //! [governor]: https://docs.rs/governor/
 //! [rocket]: https://docs.rs/rocket/
-//! [rocket_governor]: https://github.com/kolbma/rocket_governor/
-//! [rocket_governor_derive]: https://docs.rs/rocket_governor_derive/
+//! [rocket-governor]: https://github.com/kolbma/rocket-governor/
 
 #![deny(unsafe_code)]
 #![deny(warnings)]
 #![deny(clippy::all)]
+#![deny(missing_docs)]
+#![deny(missing_doc_code_examples)]
 
 use governor::clock::{Clock, DefaultClock};
 pub use governor::Quota;
-use header::Header;
 use lazy_static::lazy_static;
+pub use limit_error::LimitError;
 use logger::{error, info, trace};
 use registry::Registry;
 pub use rocket::http::Method;
 use rocket::{
+    async_trait, catch,
     http::Status,
     request::{FromRequest, Outcome},
-    response::{self, Responder},
-    Request, Response,
+    Request,
 };
 use std::marker::PhantomData;
 pub use std::num::NonZeroU32;
 
 pub mod header;
+mod limit_error;
 mod logger;
 mod registry;
 
-/// The RocketGovernable guard trait.
+/// The [RocketGovernable] guard trait.
 ///
-/// [rocket_governor] is a [rocket] guard implementation of the
+/// [rocket_governor](crate) is a [rocket] guard implementation of the
 /// [governor] rate limiter.
 ///
-/// It is used with the derive macro [rocket_governor_derive].
+/// Declare a struct and use it with the generic [RocketGovernor] guard.
+/// This requires to implement [RocketGovernable] for your struct.
 ///
-/// Declare a struct with `#[derive(RocketGovernor)]` and implement the
-/// missing methods of this trait.
+/// See the top level [crate] documentation.
 ///
 /// [governor]: https://docs.rs/governor/
 /// [rocket]: https://docs.rs/rocket/
 /// [rocket_governor]: https://docs.rs/rocket_governor/
-/// [rocket_governor_derive]: https://docs.rs/rocket_governor_derive/
 ///
-#[rocket::async_trait]
-pub trait RocketGovernable<'r>: FromRequest<'r> + Default {
-    /// Returns the [Quota] of the [rocket_governor]
+#[async_trait]
+pub trait RocketGovernable<'r> {
+    /// Returns the [Quota] of the [RocketGovernable].
     ///
     /// This is called only once per method/route_name combination.
     /// So it makes only sense to return always the same [Quota] for
     /// equal parameter combinations and no dynamic calculation.
     ///
     /// This is also the requirement to have correct information set
-    /// in HTTP headers by registered `rocket_governor_catcher(&Request)`.
+    /// in HTTP headers by registered [`rocket_governor_catcher()`](crate::rocket_governor_catcher()).
     ///
     /// [Quota]: https://docs.rs/governor/latest/governor/struct.Quota.html
-    /// [rocket_governor]: https://docs.rs/rocket_governor/
     #[must_use]
     fn quota(method: Method, route_name: &str) -> Quota;
 
-    /// Implementation of catcher used in derive macro
-    #[doc(hidden)]
-    #[inline(always)]
-    fn rocket_governor_catcher<'c>(request: &'c Request) -> &'c LimitError {
-        let cached_res: &Result<(), LimitError> = request.local_cache(|| Err(LimitError::Error));
-        if let Err(limit_err) = cached_res {
-            limit_err
-        } else {
-            &LimitError::Error
-        }
-    }
-
-    /// Converts a non-zero number [u32] to [NonZeroU32]
+    /// Converts a non-zero number [u32] to [NonZeroU32](std::num::NonZeroU32).
     ///
-    /// Number zero/0 becomes 1
+    /// Number zero/0 becomes 1.
     ///
-    /// [u32]: https://doc.rust-lang.org/std/primitive.u32.html
-    /// [NonZeroU32]: https://doc.rust-lang.org/std/num/struct.NonZeroU32.html
     #[inline]
     fn nonzero(n: u32) -> NonZeroU32 {
         NonZeroU32::new(n).unwrap_or_else(|| NonZeroU32::new(1u32).unwrap())
     }
 }
 
+/// Generic [RocketGovernor] implementation.
+///
+/// [rocket_governor](crate) is a [rocket] guard implementation of the
+/// [governor] rate limiter.
+///
+/// Declare a struct and use it with the generic [RocketGovernor] guard.
+/// This requires to implement [RocketGovernable] for your struct.
+///
+/// See the top level [crate] documentation.
+///
+/// [governor]: https://docs.rs/governor/
+/// [rocket]: https://docs.rs/rocket/
+///
+pub struct RocketGovernor<'r, T>
+where
+    T: RocketGovernable<'r>,
+{
+    _phantom: PhantomData<&'r T>,
+}
+
 lazy_static! {
     static ref CLOCK: DefaultClock = DefaultClock::default();
 }
 
-/// Helper utility for derive macro [rocket_governor_derive::RocketGovernor].
-///
-/// [rocket_governor_derive::RocketGovernor]: https://docs.rs/rocket-governor-derive/latest/rocket_governor_derive/
 #[doc(hidden)]
-pub struct RocketGovernorMacroUtil<'r, T: RocketGovernable<'r>> {
-    _phantom: &'r PhantomData<T>,
-}
-
-impl<'r, T> RocketGovernorMacroUtil<'r, T>
+impl<'r, T> RocketGovernor<'r, T>
 where
     T: RocketGovernable<'r>,
 {
+    /// Handler used in `FromRequest::from_request(request: &'r Request)`.
     #[inline(always)]
-    pub fn handle_from_request(request: &'r Request) -> Outcome<T, LimitError> {
+    pub fn handle_from_request(request: &'r Request) -> Outcome<Self, LimitError> {
         let res = request.local_cache(|| {
             if let Some(route) = request.route() {
                 if let Some(route_name) = &route.name {
@@ -196,47 +195,58 @@ where
                 _ => Outcome::Failure((Status::BadRequest, e)),
             }
         } else {
-            Outcome::Success(T::default())
+            Outcome::Success(Self::default())
         }
     }
 }
 
-/// Errors in govern (rate limit).
-#[derive(Clone, Debug)]
-pub enum LimitError {
-    /// Any other undefined LimitError
-    Error,
-
-    /// Governed request for the next provided seconds.
-    GovernedRequest(u64),
-
-    /// There is no remote client IP address known in the request. Might be a misconfigured server environment.
-    MissingClientIpAddr,
-
-    /// Route is not available which might be only the case in fairings
-    MissingRoute,
-
-    /// There is a route without name and this can not be matched for rate limiting
-    MissingRouteName,
+#[doc(hidden)]
+impl<'r, T> Default for RocketGovernor<'r, T>
+where
+    T: RocketGovernable<'r>,
+{
+    fn default() -> Self {
+        Self {
+            _phantom: PhantomData,
+        }
+    }
 }
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for &LimitError {
-    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'o> {
-        let mut builder = Response::build();
-        let mut builder = builder.status(Status::TooManyRequests);
-        builder = match self {
-            LimitError::Error => builder.header(Header::XRateLimitError("rate limiter error")),
-            LimitError::GovernedRequest(wait_time) => builder
-                .header(Header::RetryAfter(*wait_time))
-                .header(Header::XRateLimitReset(*wait_time)),
-            LimitError::MissingClientIpAddr => builder.header(Header::XRateLimitError(
-                "application not retrieving client ip",
-            )),
-            LimitError::MissingRoute => builder.header(Header::XRateLimitError("routing failure")),
-            LimitError::MissingRouteName => {
-                builder.header(Header::XRateLimitError("route without name"))
-            }
-        };
-        builder.ok()
+#[doc(hidden)]
+#[async_trait]
+impl<'r, T> FromRequest<'r> for RocketGovernor<'r, T>
+where
+    T: RocketGovernable<'r>,
+{
+    type Error = LimitError;
+
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, LimitError> {
+        Self::handle_from_request(request)
+    }
+}
+
+/// A default implementation for Rocket [Catcher] handling HTTP TooManyRequests responses.
+///
+/// ## Example
+///
+/// ```rust
+/// use rocket::{catchers, launch};
+/// use rocket_governor::rocket_governor_catcher;
+///
+/// #[launch]
+/// fn launch_rocket() -> _ {
+///     rocket::build()
+///         .register("/", catchers![rocket_governor_catcher])
+/// }
+/// ```
+///
+/// [Catcher]: https://api.rocket.rs/v0.5-rc/rocket/struct.Catcher.html
+#[catch(429)]
+pub fn rocket_governor_catcher<'r>(request: &'r Request) -> &'r LimitError {
+    let cached_res: &Result<(), LimitError> = request.local_cache(|| Err(LimitError::Error));
+    if let Err(limit_err) = cached_res {
+        limit_err
+    } else {
+        &LimitError::Error
     }
 }

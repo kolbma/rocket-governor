@@ -9,11 +9,11 @@ use rocket::{
     local::blocking::Client,
     routes,
 };
-use rocket_governor::{Method, Quota, RocketGovernable};
-use rocket_governor_derive::{RocketGovernor, RocketGovernorWithMember};
+use rocket_governor::{rocket_governor_catcher, Method, Quota, RocketGovernable, RocketGovernor};
+// use rocket_governor_derive::{RocketGovernor, RocketGovernorWithMember};
 use std::{str::FromStr, thread, time::Duration};
 
-#[derive(RocketGovernor)]
+// #[derive(RocketGovernor)]
 pub struct RateLimitGuard;
 
 impl<'r> RocketGovernable<'r> for RateLimitGuard {
@@ -22,7 +22,7 @@ impl<'r> RocketGovernable<'r> for RateLimitGuard {
     }
 }
 
-#[derive(RocketGovernorWithMember)]
+// #[derive(RocketGovernorWithMember)]
 pub struct RateLimitGuardWithMember {
     pub member: u8,
 }
@@ -33,29 +33,34 @@ impl<'r> RocketGovernable<'r> for RateLimitGuardWithMember {
     }
 }
 
-impl Default for RateLimitGuardWithMember {
-    fn default() -> Self {
-        Self { member: 254u8 }
+// impl Default for RateLimitGuardWithMember {
+//     fn default() -> Self {
+//         Self { member: 254u8 }
+//     }
+// }
+
+pub struct RateLimitGGuard;
+impl<'r> RocketGovernable<'r> for RateLimitGGuard {
+    fn quota(_method: Method, _route_name: &str) -> Quota {
+        Quota::per_second(Self::nonzero(1u32))
     }
 }
 
 #[get("/")]
-fn route_test(_limitguard: RateLimitGuard) -> Status {
+fn route_test(_limitguard: RocketGovernor<RateLimitGuard>) -> Status {
     Status::Ok
 }
 
 #[get("/member")]
-fn route_member(limitguard: RateLimitGuardWithMember) -> Status {
-    let _ = limitguard.member;
+fn route_member(_limitguard: RocketGovernor<RateLimitGuardWithMember>) -> Status {
+    // let _ = limitguard.member;
     Status::Ok
 }
 
 mod guard2 {
     use rocket::{get, http::Status};
-    use rocket_governor::{Method, Quota, RocketGovernable};
-    use rocket_governor_derive::RocketGovernor;
+    use rocket_governor::{Method, Quota, RocketGovernable, RocketGovernor};
 
-    #[derive(RocketGovernor)]
     pub struct RateLimitGuard;
 
     impl<'r> RocketGovernable<'r> for RateLimitGuard {
@@ -68,12 +73,12 @@ mod guard2 {
     }
 
     #[get("/")]
-    pub fn route_test(_limitguard: RateLimitGuard) -> Status {
+    pub fn route_test(_limitguard: RocketGovernor<RateLimitGuard>) -> Status {
         Status::Ok
     }
 
     #[get("/hour")]
-    pub fn route_hour(_limitguard: RateLimitGuard) -> Status {
+    pub fn route_hour(_limitguard: RocketGovernor<RateLimitGuard>) -> Status {
         Status::Ok
     }
 }
@@ -82,12 +87,9 @@ mod guard2 {
 fn launch_rocket() -> _ {
     rocket::build()
         .mount("/", routes![route_test, route_member])
-        .register("/", catchers!(ratelimitguard_rocket_governor_catcher))
+        .register("/", catchers!(rocket_governor_catcher))
         .mount("/guard2", routes![guard2::route_test, guard2::route_hour])
-        .register(
-            "/guard2",
-            catchers!(guard2::ratelimitguard_rocket_governor_catcher),
-        )
+        .register("/guard2", catchers!(rocket_governor_catcher))
 }
 
 #[test]
