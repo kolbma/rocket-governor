@@ -1,15 +1,14 @@
-//! Errors for governed requests which implement [Responder].
-//!
-//! [Responder]: https://api.rocket.rs/v0.5-rc/rocket/response/responder/trait.Responder.html
+//! Errors for governed requests which implement [Responder](rocket::response::Responder).
 
 use super::header::Header;
 use rocket::{
-    http::Status,
     response::{self, Responder},
-    Request, Response,
+    Request,
 };
 
-/// Errors in govern (rate limit).
+mod catcher;
+
+/// Errors for governed requests which implement [Responder](rocket::response::Responder).
 #[derive(Clone, Debug)]
 pub enum LimitError {
     /// Any other undefined LimitError
@@ -28,24 +27,32 @@ pub enum LimitError {
     MissingRouteName,
 }
 
-#[doc(hidden)]
+/// Implements [Responder](rocket::response::Responder) to provide [Result](rocket::response::Result) possibilities.
 impl<'r, 'o: 'r> Responder<'r, 'o> for &LimitError {
-    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'o> {
-        let mut builder = Response::build();
-        let mut builder = builder.status(Status::TooManyRequests);
-        builder = match self {
-            LimitError::Error => builder.header(Header::XRateLimitError("rate limiter error")),
-            LimitError::GovernedRequest(wait_time) => builder
-                .header(Header::RetryAfter(*wait_time))
-                .header(Header::XRateLimitReset(*wait_time)),
-            LimitError::MissingClientIpAddr => builder.header(Header::XRateLimitError(
-                "application not retrieving client ip",
-            )),
-            LimitError::MissingRoute => builder.header(Header::XRateLimitError("routing failure")),
+    fn respond_to(self, request: &'r Request<'_>) -> response::Result<'o> {
+        let mut handler = catcher::too_many_requests_handler(request);
+
+        match self {
+            LimitError::Error => {
+                handler.set_header(Header::XRateLimitError("rate limiter error"));
+            }
+            LimitError::GovernedRequest(wait_time) => {
+                handler.set_header(Header::RetryAfter(*wait_time));
+                handler.set_header(Header::XRateLimitReset(*wait_time));
+            }
+            LimitError::MissingClientIpAddr => {
+                handler.set_header(Header::XRateLimitError(
+                    "application not retrieving client ip",
+                ));
+            }
+            LimitError::MissingRoute => {
+                handler.set_header(Header::XRateLimitError("routing failure"));
+            }
             LimitError::MissingRouteName => {
-                builder.header(Header::XRateLimitError("route without name"))
+                handler.set_header(Header::XRateLimitError("route without name"));
             }
         };
-        builder.ok()
+
+        Ok(handler)
     }
 }
