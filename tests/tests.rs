@@ -4,16 +4,14 @@
 
 use rocket::{
     catchers, get,
-    http::{Header, Status},
+    http::{Accept, ContentType, Header, Status},
     launch,
     local::blocking::Client,
     routes,
 };
 use rocket_governor::{rocket_governor_catcher, Method, Quota, RocketGovernable, RocketGovernor};
-// use rocket_governor_derive::{RocketGovernor, RocketGovernorWithMember};
 use std::{str::FromStr, thread, time::Duration};
 
-// #[derive(RocketGovernor)]
 pub struct RateLimitGuard;
 
 impl<'r> RocketGovernable<'r> for RateLimitGuard {
@@ -22,7 +20,6 @@ impl<'r> RocketGovernable<'r> for RateLimitGuard {
     }
 }
 
-// #[derive(RocketGovernorWithMember)]
 pub struct RateLimitGuardWithMember {
     pub member: u8,
 }
@@ -32,12 +29,6 @@ impl<'r> RocketGovernable<'r> for RateLimitGuardWithMember {
         Quota::with_period(Duration::from_secs(2u64)).unwrap()
     }
 }
-
-// impl Default for RateLimitGuardWithMember {
-//     fn default() -> Self {
-//         Self { member: 254u8 }
-//     }
-// }
 
 pub struct RateLimitGGuard;
 impl<'r> RocketGovernable<'r> for RateLimitGGuard {
@@ -53,7 +44,6 @@ fn route_test(_limitguard: RocketGovernor<RateLimitGuard>) -> Status {
 
 #[get("/member")]
 fn route_member(_limitguard: RocketGovernor<RateLimitGuardWithMember>) -> Status {
-    // let _ = limitguard.member;
     Status::Ok
 }
 
@@ -212,15 +202,9 @@ fn test_ratelimit_header() {
 }
 
 #[test]
-fn test_ratelimit_guards_are_separated() {
+fn test_ratelimit_body() {
     let client = Client::untracked(launch_rocket()).expect("no rocket instance");
     let mut req = client.get("/");
-    req.add_header(Header::new("X-Real-IP", "127.0.4.1"));
-    let res = req.dispatch();
-
-    assert_eq!(Status::Ok, res.status());
-
-    let mut req = client.get("/guard2");
     req.add_header(Header::new("X-Real-IP", "127.0.4.1"));
     let res = req.dispatch();
 
@@ -231,9 +215,51 @@ fn test_ratelimit_guards_are_separated() {
     let res = req.dispatch();
 
     assert_eq!(Status::TooManyRequests, res.status());
+    assert_eq!(ContentType::HTML, res.content_type().unwrap());
+
+    let body_string = res.into_string().unwrap();
+
+    assert!(body_string.starts_with("<!DOCTYPE html>"));
+    assert!(body_string.contains("429"));
+
+    let req = client.get("/");
+    let res = req
+        .header(Accept::JSON)
+        .header(Header::new("X-Real-IP", "127.0.4.1"))
+        .dispatch();
+
+    assert_eq!(Status::TooManyRequests, res.status());
+    assert_eq!(ContentType::JSON, res.content_type().unwrap());
+
+    let body_string = res.into_string().unwrap();
+
+    assert!(body_string.starts_with("{"));
+    assert!(body_string.contains("\"code\": 429"));
+}
+
+#[test]
+fn test_ratelimit_guards_are_separated() {
+    let client = Client::untracked(launch_rocket()).expect("no rocket instance");
+    let mut req = client.get("/");
+    req.add_header(Header::new("X-Real-IP", "127.0.5.1"));
+    let res = req.dispatch();
+
+    assert_eq!(Status::Ok, res.status());
 
     let mut req = client.get("/guard2");
-    req.add_header(Header::new("X-Real-IP", "127.0.4.1"));
+    req.add_header(Header::new("X-Real-IP", "127.0.5.1"));
+    let res = req.dispatch();
+
+    assert_eq!(Status::Ok, res.status());
+
+    let mut req = client.get("/");
+    req.add_header(Header::new("X-Real-IP", "127.0.5.1"));
+    let res = req.dispatch();
+
+    assert_eq!(Status::TooManyRequests, res.status());
+
+    let mut req = client.get("/guard2");
+    req.add_header(Header::new("X-Real-IP", "127.0.5.1"));
     let res = req.dispatch();
 
     assert_eq!(Status::TooManyRequests, res.status());
