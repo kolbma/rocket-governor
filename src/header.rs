@@ -1,3 +1,5 @@
+//! The headers used when a [super::RocketGovernor] guarded path responds with TooManyRequests.
+
 use rocket::http;
 
 /// HTTP headers used for rate-limiting.
@@ -33,6 +35,7 @@ const X_RATELIMIT_ERROR: &'static str = "x-ratelimit-error";
 /// and the rate limiter bucket is full again.
 const X_RATELIMIT_RESET: &'static str = "x-ratelimit-reset";
 
+#[doc(hidden)]
 impl From<Header> for http::Header<'_> {
     fn from(header: Header) -> Self {
         match header {
