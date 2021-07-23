@@ -1,10 +1,10 @@
 [package]
-name = "rocket_governor"
-version = "0.0.1-rc.8"
+name = "rocket-governor"
+version = "0.0.1-rc.9"
 edition = "2018"
 license = "MIT OR Apache-2.0"
 description = "Implementation of Governor rate limiter for Rocket"
-documentation = "https://docs.rs/rocket_governor"
+documentation = "https://docs.rs/rocket-governor"
 homepage = "https://github.com/kolbma/rocket-governor"
 repository = "https://github.com/kolbma/rocket-governor"
 keywords = ["rocket", "governor", "rate-limit", "rate-limiting", "ratelimit"]
