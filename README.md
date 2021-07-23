@@ -1,6 +1,6 @@
 [![Rust](https://github.com/kolbma/rocket-governor/actions/workflows/rust.yml/badge.svg)](https://github.com/kolbma/rocket-governor/actions/workflows/rust.yml)
-[![crates.io](https://img.shields.io/crates/v/rocket_governor)](https://crates.io/crates/rocket_governor)
-[![docs](https://docs.rs/rocket_governor/badge.svg)](https://docs.rs/rocket_governor)
+[![crates.io](https://img.shields.io/crates/v/rocket-governor)](https://crates.io/crates/rocket-governor)
+[![docs](https://docs.rs/rocket-governor/badge.svg)](https://docs.rs/rocket-governor)
 
 ## Description
 
@@ -19,7 +19,7 @@ The Error Catcher can be registered on any path to handle [`Status::TooManyReque
 
 ## Usage
 
-Add dependencies to [rocket_governor](https://crates.io/crates/rocket_governor) crate to your _Cargo.toml_.
+Add dependencies to [rocket-governor](https://crates.io/crates/rocket-governor) crate to your _Cargo.toml_.
 
 Implement `RocketGovernable` for a _guard struct_ as you like: 
 
@@ -78,7 +78,7 @@ There is the optional feature __logger__ which enables some logging output.
 For usage depend on it in Cargo.toml
 ```toml
 [dependencies]
-rocket_governor = { version = "...", features = ["logger"] }
+rocket-governor = { version = "...", features = ["logger"] }
 ```
 
 ### Additional information

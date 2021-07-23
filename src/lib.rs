@@ -1,4 +1,4 @@
-//! # rocket_governor - rate-limiting implementation for Rocket web framework
+//! # rocket-governor - rate-limiting implementation for Rocket web framework
 //!
 //! Provides the [rocket] guard implementing rate-limiting (based on [governor]).
 //!
@@ -41,7 +41,7 @@
 //! For usage depend on it in Cargo.toml
 //! ```toml
 //! [dependencies]
-//! rocket_governor = { version = "...", features = ["logger"] }
+//! rocket-governor = { version = "...", features = ["logger"] }
 //! ```
 //!
 //! [governor]: https://docs.rs/governor/
@@ -77,7 +77,7 @@ mod registry;
 
 /// The [RocketGovernable] guard trait.
 ///
-/// [rocket_governor](crate) is a [rocket] guard implementation of the
+/// [rocket-governor](crate) is a [rocket] guard implementation of the
 /// [governor] rate limiter.
 ///
 /// Declare a struct and use it with the generic [RocketGovernor] guard.
@@ -87,7 +87,6 @@ mod registry;
 ///
 /// [governor]: https://docs.rs/governor/
 /// [rocket]: https://docs.rs/rocket/
-/// [rocket_governor]: https://docs.rs/rocket_governor/
 ///
 #[async_trait]
 pub trait RocketGovernable<'r> {
