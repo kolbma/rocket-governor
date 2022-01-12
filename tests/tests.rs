@@ -182,7 +182,7 @@ fn test_ratelimit_header() {
     let reset_header = res.headers().get_one("X-RateLimit-Reset");
     assert_ne!(None, reset_header);
     let reset_header = reset_header.unwrap();
-    assert!(reset_header.len() > 0);
+    assert!(!reset_header.is_empty());
     u64::from_str(reset_header).unwrap();
 
     let mut req = client.get("/guard2/hour");
@@ -197,7 +197,7 @@ fn test_ratelimit_header() {
     let reset_header = res.headers().get_one("Retry-After");
     assert_ne!(None, reset_header);
     let reset_header = reset_header.unwrap();
-    assert!(reset_header.len() > 0);
+    assert!(!reset_header.is_empty());
     assert!(u64::from_str(reset_header).unwrap() > 59 * 60);
 }
 
@@ -233,7 +233,7 @@ fn test_ratelimit_body() {
 
     let body_string = res.into_string().unwrap();
 
-    assert!(body_string.starts_with("{"));
+    assert!(body_string.starts_with('{'));
     assert!(body_string.contains("\"code\": 429"));
 }
 
