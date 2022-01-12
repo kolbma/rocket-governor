@@ -11,6 +11,12 @@ pub enum Header {
     /// Custom header for reporting problems with rate limiter.
     XRateLimitError(&'static str),
 
+    /// Header provides information about limitation of the route.
+    XRateLimitLimit(u64),
+
+    /// Header provides information about how many requests are left for the endpoint.
+    XRateLimitRemaining(u64),
+
     /// Header provides the time in seconds when a request to the route is not rate limited
     /// and the rate limiter bucket is full again.
     XRateLimitReset(u64),
@@ -25,11 +31,14 @@ const X_RATELIMIT_ERROR: &str = "x-ratelimit-error";
 
 // TODO: https://github.com/kolbma/rocket-governor/issues/2
 
+// TODO: Check ratelimit-headers draft for publication
+// https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-ratelimit-headers
+
 /// Header provides information about limitation of the route.
-// pub const X_RATELIMIT_LIMIT: &str = "x-ratelimit-limit";
+const X_RATELIMIT_LIMIT: &str = "x-ratelimit-limit";
 
 /// Header provides information about how many requests are left for the endpoint.
-// const X_RATELIMIT_REMAINING: &str = "x-ratelimit-remaining";
+const X_RATELIMIT_REMAINING: &str = "x-ratelimit-remaining";
 
 /// Header provides the time in seconds when a request to the route is not rate limited
 /// and the rate limiter bucket is full again.
@@ -41,6 +50,12 @@ impl From<Header> for http::Header<'_> {
         match header {
             Header::RetryAfter(sec) => http::Header::new(RETRY_AFTER, sec.to_string()),
             Header::XRateLimitError(err) => http::Header::new(X_RATELIMIT_ERROR, err),
+            Header::XRateLimitLimit(limit) => {
+                http::Header::new(X_RATELIMIT_LIMIT, limit.to_string())
+            }
+            Header::XRateLimitRemaining(remaining) => {
+                http::Header::new(X_RATELIMIT_REMAINING, remaining.to_string())
+            }
             Header::XRateLimitReset(sec) => http::Header::new(X_RATELIMIT_RESET, sec.to_string()),
         }
     }
@@ -49,7 +64,9 @@ impl From<Header> for http::Header<'_> {
 #[cfg(test)]
 mod tests {
     use super::Header;
-    use super::{RETRY_AFTER, X_RATELIMIT_ERROR, X_RATELIMIT_RESET};
+    use super::{
+        RETRY_AFTER, X_RATELIMIT_ERROR, X_RATELIMIT_LIMIT, X_RATELIMIT_REMAINING, X_RATELIMIT_RESET,
+    };
     use rocket::http;
     use std::str::FromStr;
 
@@ -62,6 +79,14 @@ mod tests {
         let h: http::Header = Header::XRateLimitError("some error").into();
         assert_eq!(X_RATELIMIT_ERROR, h.name());
         assert_eq!("some error", h.value());
+
+        let h: http::Header = Header::XRateLimitLimit(100).into();
+        assert_eq!(X_RATELIMIT_LIMIT, h.name());
+        assert_eq!(100, u64::from_str(h.value()).unwrap());
+
+        let h: http::Header = Header::XRateLimitRemaining(1).into();
+        assert_eq!(X_RATELIMIT_REMAINING, h.name());
+        assert_eq!(1, u64::from_str(h.value()).unwrap());
 
         let h: http::Header = Header::XRateLimitReset(5).into();
         assert_eq!(X_RATELIMIT_RESET, h.name());
