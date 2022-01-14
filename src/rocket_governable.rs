@@ -1,6 +1,8 @@
 //! Module for trait [RocketGovernable].
 
-use super::{Method, NonZeroU32, Quota, ReqState};
+use super::{Method, NonZeroU32, Quota};
+#[cfg(feature = "limit_info")]
+use super::ReqState;
 use rocket::async_trait;
 
 /// The [RocketGovernable] guard trait.
