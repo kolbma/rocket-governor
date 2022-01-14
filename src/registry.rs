@@ -1,17 +1,20 @@
 use crate::logger::debug;
-use governor::{clock::DefaultClock, state::keyed::DefaultKeyedStateStore, Quota, RateLimiter};
+use governor::{
+    clock::DefaultClock, middleware::StateInformationMiddleware,
+    state::keyed::DefaultKeyedStateStore, Quota, RateLimiter,
+};
 use lazy_static::lazy_static;
 use rocket::http::Method;
 use std::{
     any::type_name,
-    borrow::Cow,
     collections::HashMap,
     net::IpAddr,
     sync::{Arc, RwLock},
 };
 
-pub type RegisteredRateLimiter =
-    Arc<RateLimiter<IpAddr, DefaultKeyedStateStore<IpAddr>, DefaultClock>>;
+pub type RegisteredRateLimiter = Arc<
+    RateLimiter<IpAddr, DefaultKeyedStateStore<IpAddr>, DefaultClock, StateInformationMiddleware>,
+>;
 
 #[derive(Debug)]
 pub struct Registry {
@@ -21,7 +24,7 @@ pub struct Registry {
 impl Registry {
     pub fn get_or_insert<T>(
         method: Method,
-        route_name: &Cow<str>,
+        route_name: &str,
         quota: Quota,
     ) -> RegisteredRateLimiter {
         let route_name = type_name::<T>().to_string() + "::" + route_name;
@@ -46,23 +49,27 @@ impl Registry {
         let limiter = if let Some(limiter) = limiter {
             limiter
         } else {
-            let mut wlock = REG.limiter.write().unwrap();
-            if let Some(meth_found) = wlock.get_mut(&method) {
+            let mut wlock_meth_map = REG.limiter.write().unwrap();
+            if let Some(meth_found) = wlock_meth_map.get_mut(&method) {
                 if let Some(limiter) = meth_found.get(&route_name) {
                     debug!("limiter found method {} route {}", &method, &route_name);
                     Arc::clone(limiter)
                 } else {
                     debug!("new limiter method {} route {}", &method, &route_name);
-                    let limiter = Arc::new(RateLimiter::keyed(quota));
+                    let limiter = Arc::new(
+                        RateLimiter::keyed(quota).with_middleware::<StateInformationMiddleware>(),
+                    );
                     meth_found.insert(route_name, Arc::clone(&limiter));
                     limiter
                 }
             } else {
                 debug!("new limiter method {} route {}", &method, &route_name);
                 let mut lim_map = HashMap::new();
-                let limiter = Arc::new(RateLimiter::keyed(quota));
+                let limiter = Arc::new(
+                    RateLimiter::keyed(quota).with_middleware::<StateInformationMiddleware>(),
+                );
                 lim_map.insert(route_name, Arc::clone(&limiter));
-                wlock.insert(method, lim_map);
+                wlock_meth_map.insert(method, lim_map);
                 limiter
             }
         };
