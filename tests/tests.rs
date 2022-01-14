@@ -9,6 +9,7 @@ use rocket::{
     local::blocking::Client,
     routes,
 };
+use rocket_governor::header as rg_header;
 use rocket_governor::{rocket_governor_catcher, Method, Quota, RocketGovernable, RocketGovernor};
 use std::{str::FromStr, thread, time::Duration};
 
@@ -57,6 +58,7 @@ mod guard2 {
         fn quota(_method: Method, route_name: &str) -> Quota {
             match route_name {
                 "route_hour" => Quota::per_hour(Self::nonzero(1)),
+                "route_multi" => Quota::per_hour(Self::nonzero(4)),
                 _ => Quota::per_second(Self::nonzero(1u32)),
             }
         }
@@ -71,15 +73,31 @@ mod guard2 {
     pub fn route_hour(_limitguard: RocketGovernor<RateLimitGuard>) -> Status {
         Status::Ok
     }
+
+    #[get("/multi")]
+    pub fn route_multi(_limitguard: RocketGovernor<RateLimitGuard>) -> Status {
+        Status::Ok
+    }
 }
 
 #[launch]
 fn launch_rocket() -> _ {
-    rocket::build()
+    #[allow(unused_mut)] // attach fairing only on feature limit_info
+    let mut r = rocket::build()
         .mount("/", routes![route_test, route_member])
         .register("/", catchers!(rocket_governor_catcher))
-        .mount("/guard2", routes![guard2::route_test, guard2::route_hour])
-        .register("/guard2", catchers!(rocket_governor_catcher))
+        .mount(
+            "/guard2",
+            routes![guard2::route_test, guard2::route_hour, guard2::route_multi],
+        )
+        .register("/guard2", catchers!(rocket_governor_catcher));
+
+    #[cfg(feature = "limit_info")]
+    {
+        r = r.attach(rocket_governor::LimitHeaderGen::default());
+    }
+
+    r
 }
 
 #[test]
@@ -179,7 +197,10 @@ fn test_ratelimit_header() {
 
     assert_eq!(Status::TooManyRequests, res.status());
 
-    let reset_header = res.headers().get_one("X-RateLimit-Reset");
+    let ratelimit_header = res.headers().get_one(rg_header::X_RATELIMIT_ERROR);
+    assert_eq!(None, ratelimit_header);
+
+    let reset_header = res.headers().get_one(rg_header::X_RATELIMIT_RESET);
     assert_ne!(None, reset_header);
     let reset_header = reset_header.unwrap();
     assert!(!reset_header.is_empty());
@@ -194,11 +215,11 @@ fn test_ratelimit_header() {
 
     assert_eq!(Status::TooManyRequests, res.status());
 
-    let reset_header = res.headers().get_one("Retry-After");
-    assert_ne!(None, reset_header);
-    let reset_header = reset_header.unwrap();
-    assert!(!reset_header.is_empty());
-    assert!(u64::from_str(reset_header).unwrap() > 59 * 60);
+    let retry_header = res.headers().get_one(rg_header::RETRY_AFTER);
+    assert_ne!(None, retry_header);
+    let retry_header = retry_header.unwrap();
+    assert!(!retry_header.is_empty());
+    assert!(u64::from_str(retry_header).unwrap() > 59 * 60);
 }
 
 #[test]
@@ -263,4 +284,58 @@ fn test_ratelimit_guards_are_separated() {
     let res = req.dispatch();
 
     assert_eq!(Status::TooManyRequests, res.status());
+}
+
+#[cfg(feature = "limit_info")]
+#[test]
+fn test_ratelimit_info_header() {
+    let client = Client::untracked(launch_rocket()).expect("no rocket instance");
+    let mut req = client.get("/guard2/multi");
+    req.add_header(Header::new("X-Real-IP", "127.0.6.1"));
+    let res = req.dispatch();
+    assert_eq!(Status::Ok, res.status());
+    let mut req = client.get("/guard2/multi");
+    req.add_header(Header::new("X-Real-IP", "127.0.6.1"));
+    let res = req.dispatch();
+    assert_eq!(Status::Ok, res.status());
+
+    let retry_header = res.headers().get_one(rg_header::RETRY_AFTER);
+    assert_eq!(None, retry_header);
+
+    let remain_header = res.headers().get_one(rg_header::X_RATELIMIT_REMAINING);
+    assert_eq!(None, remain_header); // only set when <= 1 remains
+
+    let mut req = client.get("/guard2/multi");
+    req.add_header(Header::new("X-Real-IP", "127.0.6.1"));
+    let res = req.dispatch();
+    assert_eq!(Status::Ok, res.status());
+
+    let remain_header = res.headers().get_one(rg_header::X_RATELIMIT_REMAINING);
+    assert_ne!(None, remain_header); // remains == 1
+    let remain_header = remain_header.unwrap();
+    assert!(!remain_header.is_empty());
+    assert_eq!(u32::from_str(remain_header).unwrap(), 1);
+
+    let mut req = client.get("/guard2/multi");
+    req.add_header(Header::new("X-Real-IP", "127.0.6.1"));
+    let res = req.dispatch();
+    assert_eq!(Status::Ok, res.status());
+
+    let remain_header = res.headers().get_one(rg_header::X_RATELIMIT_REMAINING);
+    assert_ne!(None, remain_header); // remains == 0
+    let remain_header = remain_header.unwrap();
+    assert!(!remain_header.is_empty());
+    assert_eq!(u32::from_str(remain_header).unwrap(), 0);
+
+    let mut req = client.get("/guard2/multi");
+    req.add_header(Header::new("X-Real-IP", "127.0.6.1"));
+    let res = req.dispatch();
+    assert_eq!(Status::TooManyRequests, res.status());
+
+    let limit_header = res.headers().get_one(rg_header::X_RATELIMIT_LIMIT);
+    assert_eq!(Some("4"), limit_header);
+    let remain_header = res.headers().get_one(rg_header::X_RATELIMIT_REMAINING);
+    assert_eq!(None, remain_header); // only set on not limited
+    let retry_header = res.headers().get_one(rg_header::RETRY_AFTER);
+    assert_ne!(None, retry_header);
 }
