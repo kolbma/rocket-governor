@@ -1,11 +1,20 @@
-//! The headers used when a [super::RocketGovernor] guarded path responds with TooManyRequests.
+//! The headers used when a [RocketGovernor](super::RocketGovernor) guarded 
+//! path responds with [`TooManyRequests`](http::Status::TooManyRequests).  
+//! 
+//! Depending on setup some headers are also set on responding successful
+//! to let the client know about request limitations in the near future.
+//! 
+//! There is an [RFC Draft](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-ratelimit-headers).
+// TODO: Check RFC Draft for publication
 
 use rocket::http;
 
 /// HTTP headers used for rate-limiting.
 pub enum Header {
-    /// Standard header for status 429 Too Many Requests ([RFC 6585](https://tools.ietf.org/html/rfc6585#section-4)).
-    /// This should indicate a client for how long it should wait in seconds for retry.
+    /// Standard header for status 429 Too Many Requests 
+    /// ([RFC 6585](https://tools.ietf.org/html/rfc6585#section-4)).
+    /// This should indicate a client for how long it should wait in seconds 
+    /// for retry.
     RetryAfter(u64),
 
     /// Custom header for reporting problems with rate limiter.
@@ -14,16 +23,19 @@ pub enum Header {
     /// Header provides information about limitation of the route.
     XRateLimitLimit(u64),
 
-    /// Header provides information about how many requests are left for the endpoint.
+    /// Header provides information about how many requests are left for the 
+    /// endpoint.
     XRateLimitRemaining(u64),
 
-    /// Header provides the time in seconds when a request to the route is not rate limited
-    /// and the rate limiter bucket is full again.
+    /// Header provides the time in seconds when a request to the route is not 
+    /// rate limited and the rate limiter bucket is full again.
     XRateLimitReset(u64),
 }
 
-/// Standard header for status 429 Too Many Requests ([RFC 6585](https://tools.ietf.org/html/rfc6585#section-4)).
-/// This should indicate a client for how long it should wait in seconds for retry.
+/// Standard header for status 429 Too Many Requests 
+/// ([RFC 6585](https://tools.ietf.org/html/rfc6585#section-4)).
+/// This should indicate a client for how long it should wait in seconds for 
+/// retry.
 pub const RETRY_AFTER: &str = "retry-after";
 
 /// Custom header for reporting problems with rate limiter.
@@ -37,11 +49,12 @@ pub const X_RATELIMIT_ERROR: &str = "x-ratelimit-error";
 /// Header provides information about limitation of the route.
 pub const X_RATELIMIT_LIMIT: &str = "x-ratelimit-limit";
 
-/// Header provides information about how many requests are left for the endpoint.
+/// Header provides information about how many requests are left for the 
+/// endpoint.
 pub const X_RATELIMIT_REMAINING: &str = "x-ratelimit-remaining";
 
-/// Header provides the time in seconds when a request to the route is not rate limited
-/// and the rate limiter bucket is full again.
+/// Header provides the time in seconds when a request to the route is not 
+/// rate limited and the rate limiter bucket is full again.
 pub const X_RATELIMIT_RESET: &str = "x-ratelimit-reset";
 
 #[doc(hidden)]
