@@ -8,7 +8,7 @@ use rocket::async_trait;
 /// [rocket-governor](crate) is a [rocket] guard implementation of the
 /// [governor] rate limiter.
 ///
-/// Declare a struct and use it with the generic 
+/// Declare a struct and use it with the generic
 /// [RocketGovernor](super::RocketGovernor) guard.
 /// This requires to implement [RocketGovernable] for your struct.
 ///
@@ -118,5 +118,68 @@ pub trait RocketGovernable<'r> {
     #[inline]
     fn nonzero(n: u32) -> NonZeroU32 {
         NonZeroU32::new(n).unwrap_or_else(|| NonZeroU32::new(1u32).unwrap())
+    }
+}
+
+#[cfg(feature = "limit_info")]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rocket::{
+        get,
+        http::{Header, Status},
+        local::blocking::Client,
+        routes, Build, Rocket,
+    };
+
+    pub struct RateLimitGuard;
+
+    impl<'r> RocketGovernable<'r> for RateLimitGuard {
+        fn quota(_method: Method, _route_name: &str) -> Quota {
+            Quota::per_second(Self::nonzero(1u32))
+        }
+    }
+
+    #[get("/")]
+    fn route_test() -> Status {
+        Status::Ok
+    }
+
+    fn launch_rocket() -> Rocket<Build> {
+        rocket::build().mount("/", routes![route_test])
+    }
+
+    #[test]
+    fn test_limit_info_allow() {
+        let client = Client::untracked(launch_rocket()).expect("no rocket instance");
+        let mut req = client.get("/");
+        req.add_header(Header::new("X-Real-IP", "127.2.1.1"));
+        // req.dispatch();
+        let request = req.inner_mut();
+        let state = request
+            .local_cache(|| ReqState::new(Quota::per_second(NonZeroU32::new(1).unwrap()), 2));
+        let _ = request.real_ip();
+
+        assert!(!RateLimitGuard::limit_info_allow(None, None, state));
+
+        let mut req = client.get("/");
+        req.add_header(Header::new("X-Real-IP", "127.2.1.2"));
+        // req.dispatch();
+        let request = req.inner_mut();
+        let state = request
+            .local_cache(|| ReqState::new(Quota::per_second(NonZeroU32::new(1).unwrap()), 1));
+        let _ = request.real_ip();
+
+        assert!(RateLimitGuard::limit_info_allow(None, None, state));
+
+        let mut req = client.get("/");
+        req.add_header(Header::new("X-Real-IP", "127.2.1.3"));
+        // req.dispatch();
+        let request = req.inner_mut();
+        let state = request
+            .local_cache(|| ReqState::new(Quota::per_second(NonZeroU32::new(1).unwrap()), 0));
+        let _ = request.real_ip();
+
+        assert!(RateLimitGuard::limit_info_allow(None, None, state));
     }
 }
