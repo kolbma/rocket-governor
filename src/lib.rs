@@ -58,8 +58,12 @@ use governor::clock::{Clock, DefaultClock};
 pub use governor::Quota;
 use lazy_static::lazy_static;
 pub use limit_error::LimitError;
+#[cfg(feature = "limit_info")]
+pub use limit_header_gen::LimitHeaderGen;
 use logger::{error, info, trace};
 use registry::Registry;
+#[cfg(feature = "limit_info")]
+pub use req_state::ReqState;
 pub use rocket::http::Method;
 use rocket::{
     async_trait, catch,
@@ -67,51 +71,19 @@ use rocket::{
     request::{FromRequest, Outcome},
     Request,
 };
+pub use rocket_governable::RocketGovernable;
 use std::marker::PhantomData;
 pub use std::num::NonZeroU32;
 
 pub mod header;
 mod limit_error;
+#[cfg(feature = "limit_info")]
+mod limit_header_gen;
 mod logger;
 mod registry;
-
-/// The [RocketGovernable] guard trait.
-///
-/// [rocket-governor](crate) is a [rocket] guard implementation of the
-/// [governor] rate limiter.
-///
-/// Declare a struct and use it with the generic [RocketGovernor] guard.
-/// This requires to implement [RocketGovernable] for your struct.
-///
-/// See the top level [crate] documentation.
-///
-/// [governor]: https://docs.rs/governor/
-/// [rocket]: https://docs.rs/rocket/
-///
-#[async_trait]
-pub trait RocketGovernable<'r> {
-    /// Returns the [Quota] of the [RocketGovernable].
-    ///
-    /// This is called only once per method/route_name combination.
-    /// So it makes only sense to return always the same [Quota] for
-    /// equal parameter combinations and no dynamic calculation.
-    ///
-    /// This is also the requirement to have correct information set
-    /// in HTTP headers by registered [`rocket_governor_catcher()`](crate::rocket_governor_catcher()).
-    ///
-    /// [Quota]: https://docs.rs/governor/latest/governor/struct.Quota.html
-    #[must_use]
-    fn quota(method: Method, route_name: &str) -> Quota;
-
-    /// Converts a non-zero number [u32] to [NonZeroU32](std::num::NonZeroU32).
-    ///
-    /// Number zero/0 becomes 1.
-    ///
-    #[inline]
-    fn nonzero(n: u32) -> NonZeroU32 {
-        NonZeroU32::new(n).unwrap_or_else(|| NonZeroU32::new(1u32).unwrap())
-    }
-}
+#[cfg(feature = "limit_info")]
+mod req_state;
+mod rocket_governable;
 
 /// Generic [RocketGovernor] implementation.
 ///
@@ -154,21 +126,45 @@ where
                         T::quota(route.method, route_name),
                     );
                     if let Some(client_ip) = request.client_ip() {
-                        if let Err(notuntil) = limiter.check_key(&client_ip) {
-                            let wait_time = notuntil.wait_time_from(CLOCK.now()).as_secs();
-                            info!(
-                                "ip {} method {} route {} limited {} sec",
-                                &client_ip, &route.method, route_name, &wait_time
-                            );
-                            Err(LimitError::GovernedRequest(wait_time))
-                        } else {
-                            trace!(
-                                "not governed ip {} method {} route {}",
-                                &client_ip,
-                                &route.method,
-                                route_name
-                            );
-                            Ok(())
+                        let limit_check_res = limiter.check_key(&client_ip);
+                        match limit_check_res {
+                            Ok(state) => {
+                                #[allow(unused_variables)] // only used in trace or when feature limit_info
+                                let request_capacity = state.remaining_burst_capacity();
+                                trace!(
+                                    "not governed ip {} method {} route {}: remaining request capacity {}",
+                                    &client_ip,
+                                    &route.method,
+                                    route_name,
+                                    request_capacity
+                                );
+
+                                #[cfg(feature = "limit_info")] {
+                                    // `local_cache` lookup works by type and so it doesn't work to catch
+                                    // `LimitError` and handle different Ok objects:
+                                    // See https://rocket.rs/v0.5-rc/guide/state/#request-local-state
+                                    // State wrapper is so cached separate...
+                                    let req_state = ReqState::new(state.quota(), request_capacity);
+                                    let is_req_state_allowed = T::limit_info_allow(Some(route.method), Some(route_name), &req_state);
+                                    if is_req_state_allowed {
+                                        // For safety and speed this is used by default in a limited way, see:
+                                        // * Information disclosure:
+                                        //   https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-ratelimit-headers#section-6.2
+                                        //
+                                        let _ = request.local_cache(|| req_state);
+                                    }
+                                }
+
+                                Ok(()) // needs to be something not changing during request
+                            }
+                            Err(notuntil) => {
+                                let wait_time = notuntil.wait_time_from(CLOCK.now()).as_secs();
+                                info!(
+                                    "ip {} method {} route {} limited {} sec",
+                                    &client_ip, &route.method, route_name, &wait_time
+                                );
+                                Err(LimitError::GovernedRequest(wait_time, notuntil.quota()))
+                            }
                         }
                     } else {
                         error!(
@@ -187,14 +183,34 @@ where
             }
         });
 
-        if let Err(e) = res {
-            let e = e.clone();
-            match e {
-                LimitError::GovernedRequest(_) => Outcome::Failure((Status::TooManyRequests, e)),
-                _ => Outcome::Failure((Status::BadRequest, e)),
+        match res {
+            Ok(_) => {
+                #[cfg(feature = "limit_info")]
+                {
+                    // available if `T::limit_info_allow()` is true
+                    let state_opt = ReqState::get_or_default(&request);
+                    #[allow(unused_variables)] // state only used in trace
+                    if let Some(state) = state_opt {
+                        trace!(
+                            "request_capacity: {} rate-limit: {}",
+                            state.request_capacity,
+                            state.quota.burst_size().get()
+                        );
+                    }
+                }
+
+                // Forward request
+                Outcome::Success(Self::default())
             }
-        } else {
-            Outcome::Success(Self::default())
+            Err(e) => {
+                let e = e.clone();
+                match e {
+                    LimitError::GovernedRequest(_, _) => {
+                        Outcome::Failure((Status::TooManyRequests, e))
+                    }
+                    _ => Outcome::Failure((Status::BadRequest, e)),
+                }
+            }
         }
     }
 }

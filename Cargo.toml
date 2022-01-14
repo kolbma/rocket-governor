@@ -24,4 +24,5 @@ lazy_static = "1.4"
 rocket = "0.5.0-rc.1"
 
 [features]
+limit_info = []
 logger = []
