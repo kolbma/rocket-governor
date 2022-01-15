@@ -20,7 +20,7 @@ pub enum LimitError {
     /// Governed request for the next provided seconds.
     /// Provided `Quota` will be used for setting additional
     /// HTTP headers defined by
-    /// https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-ratelimit-headers
+    /// [draft-ietf-httpapi-ratelimit-headers](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-ratelimit-headers).
     /// These headers could be used in service clients to use the service
     /// in a more compliant way for its resources.
     GovernedRequest(u64, Quota),
