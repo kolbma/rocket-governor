@@ -36,7 +36,7 @@ use rocket::{
 ///
 /// #[rocket::launch]
 /// fn launch_rocket() -> _ {
-///     rocket::build().attach(rocket_governor::LimitHeaderGen::default());
+///     rocket::build().attach(rocket_governor::LimitHeaderGen::default())
 /// }
 /// ```
 ///
