@@ -79,7 +79,7 @@ impl ReqState {
 
 impl Default for ReqState {
     /// No meaningful implementation.  
-    /// Just to provide some default to get [`ReqState::get_or_default()`] to
+    /// Just to provide some default to get `ReqState::get_or_default()` to
     /// work.
     fn default() -> Self {
         Self {
@@ -116,7 +116,7 @@ mod tests {
         req.add_header(Header::new("X-Real-IP", "127.1.1.1"));
         // req.dispatch();
         let request = req.inner_mut();
-        request.local_cache(|| ReqState::new(Quota::per_second(NonZeroU32::new(1).unwrap()), 10));
+        let _ = request.local_cache(|| ReqState::new(Quota::per_second(NonZeroU32::new(1).unwrap()), 10));
         let _ = request.real_ip();
         let req_state = ReqState::get_or_default(request);
 
