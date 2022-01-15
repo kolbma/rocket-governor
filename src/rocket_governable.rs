@@ -134,7 +134,7 @@ mod tests {
         routes, Build, Rocket,
     };
 
-    pub struct RateLimitGuard;
+    struct RateLimitGuard;
 
     impl<'r> RocketGovernable<'r> for RateLimitGuard {
         fn quota(_method: Method, _route_name: &str) -> Quota {
