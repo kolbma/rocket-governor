@@ -1,6 +1,6 @@
 [package]
 name = "rocket-governor"
-version = "0.1.0-rc.2"
+version = "0.1.0-rc.3"
 edition = "2018"
 license = "MIT OR Apache-2.0"
 description = "Implementation of Governor rate limiter for Rocket"
@@ -15,6 +15,9 @@ categories = ["web-programming"]
 [package.metadata]
 # minimum supported rust version 1.51.0 because of dependency crates rocket -> multer -> spin
 msrv = "1.51.0"
+
+[package.metadata.docs.rs]
+all-features = true # get api doc for all features on https://docs.rs
 
 [dependencies]
 governor = "0.4"
