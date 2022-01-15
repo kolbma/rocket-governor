@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
       with:
-          toolchain: stable
+          toolchain: 1.51.0
           override: true
     - uses: katyo/publish-crates@v1
       with:
