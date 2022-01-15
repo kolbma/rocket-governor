@@ -1,3 +1,5 @@
+#![allow(clippy::single_component_path_imports)] // this is how the feature works
+
 #[cfg(feature = "logger")]
 pub(crate) use rocket::{debug, error, info, trace};
 
