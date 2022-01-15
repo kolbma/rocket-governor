@@ -12,17 +12,17 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-pub type RegisteredRateLimiter = Arc<
+pub(crate) type RegisteredRateLimiter = Arc<
     RateLimiter<IpAddr, DefaultKeyedStateStore<IpAddr>, DefaultClock, StateInformationMiddleware>,
 >;
 
 #[derive(Debug)]
-pub struct Registry {
+pub(crate) struct Registry {
     limiter: RwLock<HashMap<Method, HashMap<String, RegisteredRateLimiter>>>,
 }
 
 impl Registry {
-    pub fn get_or_insert<T>(
+    pub(crate) fn get_or_insert<T>(
         method: Method,
         route_name: &str,
         quota: Quota,
