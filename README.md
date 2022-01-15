@@ -71,6 +71,25 @@ fn launch_rocket() -> _ {
 }
 ```
 
+### Optional feature __limit_info__
+
+There is the optional feature __limit_info__ which enables reporting about
+rate limits in HTTP headers of requests.
+
+The implementation is based on headers of
+https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-ratelimit-headers
+
+The feature provides a default implementation of a Rocket fairing
+which need to be used to get the HTTP headers set.
+
+See API documentation for [LimitHeaderGen](https://docs.rs/rocket-governor/latest/rocket_governor/struct.LimitHeaderGen.html).
+
+For usage depend on it in Cargo.toml
+```toml
+[dependencies]
+rocket-governor = { version = "...", features = ["limit_info"] }
+```
+
 ### Optional feature __logger__
 
 There is the optional feature __logger__ which enables some logging output.
