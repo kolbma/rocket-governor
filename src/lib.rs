@@ -68,11 +68,16 @@
 //! [rocket]: https://docs.rs/rocket/
 //! [rocket-governor]: https://github.com/kolbma/rocket-governor/
 
-#![deny(unsafe_code)]
-#![deny(warnings)]
 #![deny(clippy::all)]
+#![deny(keyword_idents)]
 #![deny(missing_docs)]
-#![deny(missing_doc_code_examples)]
+#![deny(non_ascii_idents)]
+#![deny(unreachable_pub)]
+#![deny(unsafe_code)]
+#![deny(unused_crate_dependencies)]
+#![deny(unused_qualifications)]
+//#![deny(unused_results)]
+#![deny(warnings)]
 
 use governor::clock::{Clock, DefaultClock};
 pub use governor::Quota;
