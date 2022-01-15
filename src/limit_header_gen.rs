@@ -20,7 +20,7 @@ use rocket::{
 /// The guard is responsible for managing the governor rate limit.
 ///
 /// Depending on the implementation of
-/// [`RocketGovernable::limit_info_allow()`](crate::RocketGovernable::limit_info_allow())
+/// [`RocketGovernable::limit_info_allow()`](crate::RocketGovernable::limit_info_allow()),
 /// `LimitHeaderGen` fairing sets [HTTP headers](crate::header) like
 /// 
 /// * [X_RATELIMIT_LIMIT](crate::header::X_RATELIMIT_LIMIT)
