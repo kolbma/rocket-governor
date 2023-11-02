@@ -24,7 +24,7 @@ governor = "0.4"
 lazy_static = "1.4"
 # rocket = { path = "../rocket/core/lib" }
 # rocket = { git = "https://github.com/SergioBenitez/Rocket.git", branch = "v0.5-rc" }
-rocket = "0.5.0-rc.2"
+rocket = "0.5.0-rc.4"
 
 [features]
 limit_info = []
