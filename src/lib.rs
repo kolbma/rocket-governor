@@ -231,9 +231,9 @@ where
                 let e = e.clone();
                 match e {
                     LimitError::GovernedRequest(_, _) => {
-                        Outcome::Failure((Status::TooManyRequests, e))
+                        Outcome::Error((Status::TooManyRequests, e))
                     }
-                    _ => Outcome::Failure((Status::BadRequest, e)),
+                    _ => Outcome::Error((Status::BadRequest, e)),
                 }
             }
         }
