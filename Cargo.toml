@@ -20,7 +20,7 @@ msrv = "1.59.0"
 all-features = true # get api doc for all features on https://docs.rs
 
 [dependencies]
-governor = "0.4"
+governor = "0.6"
 lazy_static = "1.4"
 # rocket = { path = "../rocket/core/lib" }
 # rocket = { git = "https://github.com/SergioBenitez/Rocket.git", branch = "v0.5-rc" }
