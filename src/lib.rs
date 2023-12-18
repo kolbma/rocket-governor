@@ -167,7 +167,7 @@ where
                                 #[cfg(feature = "limit_info")] {
                                     // `local_cache` lookup works by type and so it doesn't work to catch
                                     // `LimitError` and handle different Ok objects:
-                                    // See https://rocket.rs/v0.5-rc/guide/state/#request-local-state
+                                    // See https://rocket.rs/v0.5/guide/state/#request-local-state
                                     // State wrapper is so cached separate...
                                     let req_state = ReqState::new(state.quota(), request_capacity);
                                     let is_req_state_allowed = T::limit_info_allow(Some(route.method), Some(route_name), &req_state);
@@ -231,9 +231,9 @@ where
                 let e = e.clone();
                 match e {
                     LimitError::GovernedRequest(_, _) => {
-                        Outcome::Failure((Status::TooManyRequests, e))
+                        Outcome::Error((Status::TooManyRequests, e))
                     }
-                    _ => Outcome::Failure((Status::BadRequest, e)),
+                    _ => Outcome::Error((Status::BadRequest, e)),
                 }
             }
         }
@@ -280,7 +280,7 @@ where
 /// }
 /// ```
 ///
-/// [Catcher]: https://api.rocket.rs/v0.5-rc/rocket/struct.Catcher.html
+/// [Catcher]: https://api.rocket.rs/v0.5/rocket/struct.Catcher.html
 #[catch(429)]
 pub fn rocket_governor_catcher<'r>(request: &'r Request) -> &'r LimitError {
     let cached_res: &Result<(), LimitError> = request.local_cache(|| Err(LimitError::Error));
