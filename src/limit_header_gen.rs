@@ -62,7 +62,7 @@ impl Fairing for LimitHeaderGen {
     /// returns true and [`ReqState`] has been cached in this case in
     /// [`Request::local_cache`].
     async fn on_response<'r>(&self, request: &'r Request<'_>, response: &mut Response<'r>) {
-        let state_opt = ReqState::get_or_default(&request);
+        let state_opt = ReqState::get_or_default(request);
 
         if let Some(state) = state_opt {
             response.set_header(Header::XRateLimitLimit(

@@ -213,7 +213,7 @@ where
                 #[cfg(feature = "limit_info")]
                 {
                     // available if `T::limit_info_allow()` is true
-                    let state_opt = ReqState::get_or_default(&request);
+                    let state_opt = ReqState::get_or_default(request);
                     #[allow(unused_variables)] // state only used in trace
                     if let Some(state) = state_opt {
                         trace!(

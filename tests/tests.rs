@@ -94,7 +94,7 @@ fn launch_rocket() -> _ {
 
     #[cfg(feature = "limit_info")]
     {
-        r = r.attach(rocket_governor::LimitHeaderGen::default());
+        r = r.attach(rocket_governor::LimitHeaderGen);
     }
 
     r
