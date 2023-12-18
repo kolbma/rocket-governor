@@ -12,12 +12,12 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: actions-rs/toolchain@v1
-      with:
-          toolchain: 1.59.0
-          override: true
-    - uses: katyo/publish-crates@v1
+      # with:
+      #     toolchain: 1.69.0
+      #     override: true
+    - uses: katyo/publish-crates@v2
       with:
           dry-run: false
           registry-token: ${{ secrets.CRATES_IO_ROCKET_GOVERNOR }}
