@@ -9,5 +9,5 @@ fail() {
 }
 
 cargo fmt --check && \
-cargo clippy --no-deps -- -Dwarnings && \
+cargo clippy --all-features --no-deps -- -Dwarnings && \
 cargo msrv verify || fail
