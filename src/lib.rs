@@ -46,7 +46,7 @@
 //! The feature provides a default implementation of a Rocket fairing
 //! which need to be used to get the HTTP headers set.
 //!
-//! See API documentation for [LimitHeaderGen](crate::LimitHeaderGen).
+//! See API documentation for [LimitHeaderGen].
 //!
 //! For usage depend on it in Cargo.toml
 //! ```toml

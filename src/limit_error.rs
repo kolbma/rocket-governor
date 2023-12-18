@@ -37,7 +37,7 @@ pub enum LimitError {
     MissingRouteName,
 }
 
-/// Implements [Responder](rocket::response::Responder) to provide
+/// Implements [Responder] to provide
 /// [Result](rocket::response::Result) possibilities.
 impl<'r, 'o: 'r> Responder<'r, 'o> for &LimitError {
     fn respond_to(self, request: &'r Request<'_>) -> response::Result<'o> {
