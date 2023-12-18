@@ -1,0 +1,17 @@
+#!/bin/sh
+
+script=$(basename "$0")
+
+fail() {
+	echo "$script: pre-push hook failed" >&2
+	exit 1
+}
+
+version=v$(sed -e '/^version[ =]/!d' -e 's/^version[ =]*//' -e 's/"//g' Cargo.toml)
+
+git tag | grep -q "^$version$"
+[ "$?" -eq 0 ] || {
+	git tag -s -m "build: release $version" "$version" || fail
+}
+
+exit 0

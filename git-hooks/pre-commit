@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+
+script=$(basename "$0")
+
+fail() {
+	echo "$script: pre-commit hook failed" >&2
+	exit 1
+}
+
+cargo fmt --check && \
+cargo clippy --no-deps -- -Dwarnings && \
+cargo msrv verify || fail
