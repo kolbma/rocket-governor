@@ -4,7 +4,7 @@
 
 ## Description
 
-Implementation of the [Governor](https://github.com/antifuchs/governor.git) rate limiter for [Rocket](https://rocket.rs) web framework.
+Implementation of the [Governor](https://github.com/boinkor-net/governor.git) rate limiter for [Rocket](https://rocket.rs) web framework.
 
 Rate limiting is used to control the rate requests are received and handled by an endpoint of the web application 
 or web service.
@@ -13,9 +13,9 @@ or web service.
 
 Define as many rate limits with [Quota](https://docs.rs/governor/latest/governor/struct.Quota.html) of Governor
 as you like and need in your Rocket web application/service.  
-It is implemented as a Rocket [Request Guard](https://rocket.rs/v0.5-rc/guide/requests/#request-guards) and provides
-also an implementation of an [Error Catcher](https://rocket.rs/v0.5-rc/guide/requests/#error-catchers).  
-The Error Catcher can be registered on any path to handle [`Status::TooManyRequests`](https://api.rocket.rs/v0.5-rc/rocket/http/struct.Status.html#associatedconstant.TooManyRequests) and provide HTTP headers in the response.
+It is implemented as a Rocket [Request Guard](https://rocket.rs/v0.5/guide/requests/#request-guards) and provides
+also an implementation of an [Error Catcher](https://rocket.rs/v0.5/guide/requests/#error-catchers).  
+The Error Catcher can be registered on any path to handle [`Status::TooManyRequests`](https://api.rocket.rs/v0.5/rocket/http/struct.Status.html#associatedconstant.TooManyRequests) and provide HTTP headers in the response.
 
 ## Usage
 
@@ -103,8 +103,8 @@ rocket-governor = { version = "...", features = ["logger"] }
 ### Additional information
 
 To understand the basics of Rocket, please visit the _Rocket Guide_:
-* https://rocket.rs/v0.5-rc/guide/requests/#request-guards
-* https://rocket.rs/v0.5-rc/guide/requests/#error-catchers
+* https://rocket.rs/v0.5/guide/requests/#request-guards
+* https://rocket.rs/v0.5/guide/requests/#error-catchers
 
 ## Licenses
 
@@ -112,7 +112,7 @@ You can choose between __[MIT License](https://opensource.org/licenses/MIT)__ or
 
 ### MIT License
 
-Copyright (c) 2022 Markus Kolb
+Copyright (c) 2023 Markus Kolb
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -122,7 +122,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### Apache License 2.0
 
-Copyright 2022 Markus Kolb
+Copyright 2023 Markus Kolb
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
