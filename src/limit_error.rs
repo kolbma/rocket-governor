@@ -1,4 +1,4 @@
-//! Errors for governed requests which implement 
+//! Errors for governed requests which implement
 //! [Responder](rocket::response::Responder).
 
 use super::{header::Header, Quota};
@@ -9,7 +9,7 @@ use rocket::{
 
 mod catcher;
 
-/// Errors for governed requests which implement 
+/// Errors for governed requests which implement
 /// [Responder](rocket::response::Responder).
 #[derive(Clone, Debug)]
 pub enum LimitError {
@@ -25,19 +25,19 @@ pub enum LimitError {
     /// in a more compliant way for its resources.
     GovernedRequest(u64, Quota),
 
-    /// There is no remote client IP address known in the request. Might be 
+    /// There is no remote client IP address known in the request. Might be
     /// a misconfigured server environment.
     MissingClientIpAddr,
 
     /// Route is not available which might be only the case in fairings
     MissingRoute,
 
-    /// There is a route without name and this can not be matched for 
+    /// There is a route without name and this can not be matched for
     /// rate limiting
     MissingRouteName,
 }
 
-/// Implements [Responder](rocket::response::Responder) to provide 
+/// Implements [Responder](rocket::response::Responder) to provide
 /// [Result](rocket::response::Result) possibilities.
 impl<'r, 'o: 'r> Responder<'r, 'o> for &LimitError {
     fn respond_to(self, request: &'r Request<'_>) -> response::Result<'o> {
@@ -53,8 +53,8 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for &LimitError {
                 //       https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-ratelimit-headers#section-5.1
                 handler.set_header(Header::XRateLimitLimit(quota.burst_size().get() as u64));
                 // XRateLimitRemaining makes no sense here in LimitError
-                // because `state.remaining_burst_capacity()` should be 
-                // always 0 
+                // because `state.remaining_burst_capacity()` should be
+                // always 0
                 handler.set_header(Header::XRateLimitReset(
                     quota.burst_size_replenished_in().as_secs(),
                 ));

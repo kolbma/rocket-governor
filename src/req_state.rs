@@ -116,7 +116,8 @@ mod tests {
         req.add_header(Header::new("X-Real-IP", "127.1.1.1"));
         // req.dispatch();
         let request = req.inner_mut();
-        let _ = request.local_cache(|| ReqState::new(Quota::per_second(NonZeroU32::new(1).unwrap()), 10));
+        let _ = request
+            .local_cache(|| ReqState::new(Quota::per_second(NonZeroU32::new(1).unwrap()), 10));
         let _ = request.real_ip();
         let req_state = ReqState::get_or_default(request);
 

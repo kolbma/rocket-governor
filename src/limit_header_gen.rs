@@ -22,10 +22,10 @@ use rocket::{
 /// Depending on the implementation of
 /// [`RocketGovernable::limit_info_allow()`](crate::RocketGovernable::limit_info_allow()),
 /// `LimitHeaderGen` fairing sets [HTTP headers](crate::header) like
-/// 
+///
 /// * [X_RATELIMIT_LIMIT](crate::header::X_RATELIMIT_LIMIT)
 /// * [X_RATELIMIT_REMAINING](crate::header::X_RATELIMIT_REMAINING)
-/// 
+///
 /// which can be used by HTTP clients to adjust service requests.
 ///
 /// ## Example usage
