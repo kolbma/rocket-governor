@@ -32,13 +32,12 @@ impl Registry {
         // check if exist with readlock
         let limiter = if let Ok(rlock) = REG.limiter.read() {
             if let Some(meth_found) = rlock.get(&method) {
-                meth_found.get(&route_name).map(|limiter| {
-                    debug!("limiter found method {} route {}", method, route_name);
-                    Arc::clone(limiter)
-                })
-            } else {
-                None
+                if let Some(limiter) = meth_found.get(&route_name) {
+                    debug!("limiter found method {} route {}", &method, &route_name);
+                    return Arc::clone(limiter);
+                }
             }
+            None
         } else {
             None
         };
