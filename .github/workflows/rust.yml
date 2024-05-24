@@ -24,7 +24,7 @@ jobs:
         toolchain: stable
         components: clippy, rustfmt
     - uses: actions/checkout@v4
-    - uses: actions-rs/clippy-check@v1
+    - uses: loliGothicK/clippy-check@v0.3.2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         args: --all-features
