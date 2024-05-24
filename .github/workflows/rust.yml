@@ -27,7 +27,10 @@ jobs:
     - uses: loliGothicK/clippy-check@v0.3.2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        args: --all-features
+    - uses: loliGothicK/clippy-check@v0.3.2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        options: --all-features
     - run: cargo fmt --check
 
   cargo-doc-stable:
