@@ -1,6 +1,6 @@
 [package]
 name = "rocket-governor"
-version = "0.2.0-rc.3"
+version = "0.2.0-rc.4"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Implementation of Governor rate limiter for Rocket"
@@ -9,6 +9,7 @@ homepage = "https://github.com/kolbma/rocket-governor"
 repository = "https://github.com/kolbma/rocket-governor"
 keywords = ["rocket", "governor", "rate-limit", "rate-limiting", "ratelimit"]
 categories = ["web-programming"]
+rust-version = "1.69.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
