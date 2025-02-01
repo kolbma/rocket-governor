@@ -53,6 +53,10 @@ jobs:
       with:
         toolchain: ${{ env.RUST_MSRV_TOOLCHAIN }}
     - uses: actions/checkout@v4
+    - run: cargo update -p tokio@1.43.0 --precise 1.38.1
+    - run: cargo update -p tokio-stream@0.1.17 --precise 0.1.15
+    - run: cargo update -p tokio-util@0.7.13 --precise 0.7.11
+    - run: cargo update -p mio@1.0.3 --precise 0.8.11
     - run: cargo doc --verbose --all-features --no-deps
 
   build-stable:
@@ -102,6 +106,10 @@ jobs:
         default: true
     - uses: actions/checkout@v4
     - run: cargo --version
+    - run: cargo update -p tokio@1.43.0 --precise 1.38.1
+    - run: cargo update -p tokio-stream@0.1.17 --precise 0.1.15
+    - run: cargo update -p tokio-util@0.7.13 --precise 0.7.11
+    - run: cargo update -p mio@1.0.3 --precise 0.8.11
     - run: cargo build --verbose --release --all-features
 
   test-msrv-all-features:
@@ -114,4 +122,8 @@ jobs:
         toolchain: ${{ env.RUST_MSRV_TOOLCHAIN }}
         default: true
     - uses: actions/checkout@v4
+    - run: cargo update -p tokio@1.43.0 --precise 1.38.1
+    - run: cargo update -p tokio-stream@0.1.17 --precise 0.1.15
+    - run: cargo update -p tokio-util@0.7.13 --precise 0.7.11
+    - run: cargo update -p mio@1.0.3 --precise 0.8.11
     - run: cargo test --verbose --all-features
